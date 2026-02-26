@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.375rem;
+
+    /* Scoreboard theme colors in OKLCH */
+    --background: 0 0 0;
+    --foreground: 1 0 0;
+    --card: 0.12 0 0;
+    --card-foreground: 1 0 0;
+    --popover: 0.15 0 0;
+    --popover-foreground: 1 0 0;
+    --primary: 0.55 0.2 250;
+    --primary-foreground: 1 0 0;
+    --secondary: 0.2 0 0;
+    --secondary-foreground: 1 0 0;
+    --muted: 0.18 0 0;
+    --muted-foreground: 0.65 0 0;
+    --accent: 0.85 0.18 85;
+    --accent-foreground: 0.1 0 0;
+    --destructive: 0.55 0.22 25;
+    --destructive-foreground: 1 0 0;
+    --border: 0.25 0 0;
+    --input: 0.2 0 0;
+    --ring: 0.55 0.2 250;
+
+    /* Custom scoreboard tokens */
+    --ao-blue: oklch(0.45 0.22 255);
+    --ao-blue-dark: oklch(0.3 0.18 255);
+    --aka-red: oklch(0.48 0.22 25);
+    --aka-red-dark: oklch(0.32 0.18 25);
+    --score-cyan: oklch(0.82 0.18 195);
+    --score-cyan-light: oklch(0.88 0.15 195);
+    --golden: oklch(0.82 0.18 85);
+    --timer-green: oklch(0.72 0.2 145);
+    --control-bar: oklch(0.12 0 0);
+  }
+
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    width: 100%;
+    min-height: 100vh;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@layer utilities {
+  .font-scoreboard {
+    font-family: 'Oswald', 'Impact', 'Arial Black', sans-serif;
+    font-weight: 700;
+  }
+
+  .bg-ao-blue {
+    background-color: oklch(0.45 0.22 255);
+  }
+
+  .bg-ao-blue-dark {
+    background-color: oklch(0.3 0.18 255);
+  }
+
+  .bg-aka-red {
+    background-color: oklch(0.48 0.22 25);
+  }
+
+  .bg-aka-red-dark {
+    background-color: oklch(0.32 0.18 25);
+  }
+
+  .bg-score-cyan {
+    background-color: oklch(0.82 0.18 195);
+  }
+
+  .hover\:bg-score-cyan-light:hover {
+    background-color: oklch(0.88 0.15 195);
+  }
+
+  .bg-golden {
+    background-color: oklch(0.82 0.18 85);
+  }
+
+  .text-golden {
+    color: oklch(0.82 0.18 85);
+  }
+
+  .border-golden {
+    border-color: oklch(0.82 0.18 85);
+  }
+
+  .text-timer-green {
+    color: oklch(0.72 0.2 145);
+  }
+
+  .bg-timer-green {
+    background-color: oklch(0.72 0.2 145);
+  }
+
+  .bg-control-bar {
+    background-color: oklch(0.12 0 0);
+  }
+
+  .shadow-golden-glow {
+    box-shadow: 0 0 12px oklch(0.82 0.18 85 / 0.6);
+  }
+
+  .text-ao-blue {
+    color: oklch(0.45 0.22 255);
+  }
+
+  .text-aka-red {
+    color: oklch(0.48 0.22 25);
+  }
+
+  .border-ao-blue {
+    border-color: oklch(0.45 0.22 255);
+  }
+
+  .border-aka-red {
+    border-color: oklch(0.48 0.22 25);
+  }
+
+  .accent-golden {
+    accent-color: oklch(0.82 0.18 85);
+  }
+}
