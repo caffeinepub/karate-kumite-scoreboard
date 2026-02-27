@@ -155,38 +155,45 @@ export default function ExternalDisplay() {
       </div>
 
       {/* MIDDLE: Score Panels + Tatami */}
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 16, width: '100%', flex: 1, minHeight: 0 }}>
-        {/* Left Score Panel */}
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 12, width: '100%', flex: 1, minHeight: 0 }}>
+        {/* Left Score Panel — Version 17 layout */}
         <div style={{
-          flex: '0 0 40%',
+          flex: '0 0 35%',
           backgroundColor: leftBgColor,
-          borderRadius: 14,
-          border: `3px solid ${leftBorderColor}`,
-          padding: '16px 20px',
+          borderRadius: 10,
+          border: `2px solid ${leftBorderColor}`,
+          padding: '10px 12px',
           textAlign: 'center',
           boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 2,
         }}>
-          <div style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 900, marginBottom: 6, letterSpacing: 4 }}>{leftLabel}</div>
+          {/* AO label */}
+          <div style={{ color: '#FFFFFF', fontSize: 40, fontWeight: 900, letterSpacing: 6, opacity: 0.95, lineHeight: 1 }}>{leftLabel}</div>
+          {/* Player name */}
           {leftSide.name && (
-            <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: 600, marginBottom: 6 }}>{leftSide.name}</div>
+            <div style={{ color: '#FFFFFF', fontSize: 22, fontWeight: 700, letterSpacing: 1, lineHeight: 1.1 }}>{leftSide.name}</div>
           )}
-          <div style={{ color: '#FFFFFF', fontSize: 100, fontWeight: 900, lineHeight: 1, letterSpacing: -2 }}>
+          {/* Score */}
+          <div style={{ color: '#FFFFFF', fontSize: 140, fontWeight: 900, lineHeight: 0.85, letterSpacing: -6 }}>
             {leftSide.score}
           </div>
+          {/* Senshu */}
           {leftSide.senshu && (
             <div style={{
-              marginTop: 8,
+              marginTop: 4,
               display: 'inline-block',
-              padding: '3px 14px',
+              padding: '4px 16px',
               backgroundColor: '#F59E0B',
               color: '#000',
-              fontWeight: 700,
-              fontSize: 13,
+              fontWeight: 800,
+              fontSize: 20,
               borderRadius: 999,
+              letterSpacing: 2,
+              boxShadow: '0 0 16px rgba(245,158,11,0.85)',
             }}>
               SENSHU
             </div>
@@ -207,37 +214,44 @@ export default function ExternalDisplay() {
           </div>
         </div>
 
-        {/* Right Score Panel */}
+        {/* Right Score Panel — Version 17 layout */}
         <div style={{
-          flex: '0 0 40%',
+          flex: '0 0 35%',
           backgroundColor: rightBgColor,
-          borderRadius: 14,
-          border: `3px solid ${rightBorderColor}`,
-          padding: '16px 20px',
+          borderRadius: 10,
+          border: `2px solid ${rightBorderColor}`,
+          padding: '10px 12px',
           textAlign: 'center',
           boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 2,
         }}>
-          <div style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 900, marginBottom: 6, letterSpacing: 4 }}>{rightLabel}</div>
+          {/* AKA label */}
+          <div style={{ color: '#FFFFFF', fontSize: 40, fontWeight: 900, letterSpacing: 6, opacity: 0.95, lineHeight: 1 }}>{rightLabel}</div>
+          {/* Player name */}
           {rightSide.name && (
-            <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: 600, marginBottom: 6 }}>{rightSide.name}</div>
+            <div style={{ color: '#FFFFFF', fontSize: 22, fontWeight: 700, letterSpacing: 1, lineHeight: 1.1 }}>{rightSide.name}</div>
           )}
-          <div style={{ color: '#FFFFFF', fontSize: 100, fontWeight: 900, lineHeight: 1, letterSpacing: -2 }}>
+          {/* Score */}
+          <div style={{ color: '#FFFFFF', fontSize: 140, fontWeight: 900, lineHeight: 0.85, letterSpacing: -6 }}>
             {rightSide.score}
           </div>
+          {/* Senshu */}
           {rightSide.senshu && (
             <div style={{
-              marginTop: 8,
+              marginTop: 4,
               display: 'inline-block',
-              padding: '3px 14px',
+              padding: '4px 16px',
               backgroundColor: '#F59E0B',
               color: '#000',
-              fontWeight: 700,
-              fontSize: 13,
+              fontWeight: 800,
+              fontSize: 20,
               borderRadius: 999,
+              letterSpacing: 2,
+              boxShadow: '0 0 16px rgba(245,158,11,0.85)',
             }}>
               SENSHU
             </div>
@@ -306,7 +320,7 @@ export default function ExternalDisplay() {
         </div>
       </div>
 
-      {/* BOTTOM: Timer */}
+      {/* BOTTOM: Timer — big and always glowing */}
       <div style={{
         flexShrink: 0,
         textAlign: 'center',
@@ -314,15 +328,22 @@ export default function ExternalDisplay() {
       }}>
         <div style={{
           color: timerColor,
-          fontSize: 64,
+          fontSize: 160,
           fontWeight: 900,
-          letterSpacing: 3,
-          textShadow: state.isRunning ? '0 0 24px rgba(34,197,94,0.7)' : 'none',
+          letterSpacing: 4,
+          textShadow: '0 0 30px rgba(34,197,94,0.9), 0 0 60px rgba(34,197,94,0.5), 0 0 100px rgba(34,197,94,0.3)',
           fontVariantNumeric: 'tabular-nums',
           lineHeight: 1,
+          animation: state.isRunning ? 'timerPulse 1s ease-in-out infinite' : 'none',
         }}>
           {state.timerDisplay}
         </div>
+        <style>{`
+          @keyframes timerPulse {
+            0%, 100% { text-shadow: 0 0 30px rgba(34,197,94,0.9), 0 0 60px rgba(34,197,94,0.5), 0 0 100px rgba(34,197,94,0.3); }
+            50% { text-shadow: 0 0 50px rgba(34,197,94,1), 0 0 100px rgba(34,197,94,0.7), 0 0 150px rgba(34,197,94,0.5); }
+          }
+        `}</style>
       </div>
 
       {/* Winner Popup */}

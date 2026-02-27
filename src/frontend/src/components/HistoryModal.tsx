@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, Download, RefreshCw } from 'lucide-react';
+import { X, Download, RefreshCw, Trash2 } from 'lucide-react';
 import { useLocalHistory } from '../hooks/useQueries';
 import { exportHistoryToPDF } from '../utils/pdfExport';
+import { clearHistoryLocal } from '../utils/localHistory';
 import type { RecordMatch } from '../backend';
 
 interface HistoryModalProps {
@@ -72,6 +73,13 @@ function MatchRow({ match, index }: { match: RecordMatch; index: number }) {
 export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
   const { matches, refresh } = useLocalHistory();
 
+  const handleClearHistory = () => {
+    if (window.confirm('Are you sure you want to clear all match history? This cannot be undone.')) {
+      clearHistoryLocal();
+      refresh();
+    }
+  };
+
   // Refresh whenever the modal opens
   React.useEffect(() => {
     if (isOpen) refresh();
@@ -102,6 +110,16 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
             >
               <Download size={14} />
               Export PDF
+            </button>
+            <button
+              type="button"
+              onClick={handleClearHistory}
+              disabled={matches.length === 0}
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-700 hover:bg-red-600 disabled:opacity-40 text-white text-sm font-semibold rounded transition-all"
+              title="Clear all history"
+            >
+              <Trash2 size={14} />
+              Clear History
             </button>
             <button
               type="button"
