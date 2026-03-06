@@ -1,5 +1,5 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
-import { playSingleWhistle, playDoubleWhistle } from '../utils/audioService';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { playDoubleWhistle, playSingleWhistle } from "../utils/audioService";
 
 export interface TimerState {
   timeMs: number;
@@ -21,10 +21,10 @@ function formatTime(ms: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   const millis = ms % 1000;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 }
 
-export function useTimer(initialMs: number = 90000) {
+export function useTimer(initialMs = 90000) {
   const [timeMs, setTimeMs] = useState(initialMs);
   const [isRunning, setIsRunning] = useState(false);
   const [durationMs, setDurationMs] = useState(initialMs);
@@ -51,7 +51,7 @@ export function useTimer(initialMs: number = 90000) {
       const delta = now - lastTickRef.current;
       lastTickRef.current = now;
 
-      setTimeMs(prev => {
+      setTimeMs((prev) => {
         const next = Math.max(0, prev - delta);
         timeMsRef.current = next;
 
@@ -100,22 +100,25 @@ export function useTimer(initialMs: number = 90000) {
   }, [stopInterval, durationMs]);
 
   const adjustTime = useCallback((deltaMs: number) => {
-    setTimeMs(prev => {
+    setTimeMs((prev) => {
       const next = Math.max(0, prev + deltaMs);
       timeMsRef.current = next;
       return next;
     });
   }, []);
 
-  const setDuration = useCallback((ms: number) => {
-    setDurationMs(ms);
-    stopInterval();
-    setIsRunning(false);
-    setTimeMs(ms);
-    timeMsRef.current = ms;
-    has15SecWhistlePlayed.current = false;
-    hasEndWhistlePlayed.current = false;
-  }, [stopInterval]);
+  const setDuration = useCallback(
+    (ms: number) => {
+      setDurationMs(ms);
+      stopInterval();
+      setIsRunning(false);
+      setTimeMs(ms);
+      timeMsRef.current = ms;
+      has15SecWhistlePlayed.current = false;
+      hasEndWhistlePlayed.current = false;
+    },
+    [stopInterval],
+  );
 
   // Stop timer state when it reaches 0
   useEffect(() => {

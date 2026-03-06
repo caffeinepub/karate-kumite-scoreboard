@@ -1,13 +1,13 @@
-import type { RecordMatch } from '../backend';
+import type { RecordMatch } from "../backend";
 
-const HISTORY_KEY = 'kumite_match_history_v1';
+const HISTORY_KEY = "kumite_match_history_v1";
 
 // Serialize RecordMatch to JSON-safe format (BigInt → string with marker)
 function serializeMatch(match: RecordMatch): object {
   return JSON.parse(
     JSON.stringify(match, (_key, value) =>
-      typeof value === 'bigint' ? `__bigint__${value.toString()}` : value
-    )
+      typeof value === "bigint" ? `__bigint__${value.toString()}` : value,
+    ),
   );
 }
 
@@ -15,7 +15,7 @@ function serializeMatch(match: RecordMatch): object {
 function deserializeMatch(obj: unknown): RecordMatch {
   const json = JSON.stringify(obj);
   const restored = JSON.parse(json, (_key, value) => {
-    if (typeof value === 'string' && value.startsWith('__bigint__')) {
+    if (typeof value === "string" && value.startsWith("__bigint__")) {
       return BigInt(value.slice(10));
     }
     return value;

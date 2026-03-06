@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface ControlBarProps {
   category: string;
@@ -58,7 +58,7 @@ export default function ControlBar({
             <input
               type="text"
               value={category}
-              onChange={e => onCategoryChange(e.target.value)}
+              onChange={(e) => onCategoryChange(e.target.value)}
               placeholder="Category (e.g. Male -60kg)"
               className="bg-gray-800 text-white border border-gray-600 rounded px-2 py-1 text-sm w-44 placeholder:text-gray-400"
             />
@@ -66,12 +66,14 @@ export default function ControlBar({
 
           {/* Winning Score */}
           <div className="flex items-center gap-1">
-            <span className="text-gray-300 text-xs whitespace-nowrap">Winning Score:</span>
+            <span className="text-gray-300 text-xs whitespace-nowrap">
+              Winning Score:
+            </span>
             <input
               type="number"
               min={1}
               value={winningScore}
-              onChange={e => onWinningScoreChange(Number(e.target.value))}
+              onChange={(e) => onWinningScoreChange(Number(e.target.value))}
               disabled={winByLead}
               className="w-14 text-center bg-gray-800 text-white border border-gray-600 rounded py-1 text-sm disabled:opacity-40"
             />
@@ -83,7 +85,7 @@ export default function ControlBar({
               <input
                 type="checkbox"
                 checked={winByLead}
-                onChange={e => onWinByLeadChange(e.target.checked)}
+                onChange={(e) => onWinByLeadChange(e.target.checked)}
                 className="accent-golden w-3 h-3"
               />
               Win by Lead:
@@ -92,7 +94,7 @@ export default function ControlBar({
               type="number"
               min={1}
               value={leadAmount}
-              onChange={e => onLeadAmountChange(Number(e.target.value))}
+              onChange={(e) => onLeadAmountChange(Number(e.target.value))}
               className="w-14 text-center bg-gray-800 text-white border border-gray-600 rounded py-1 text-sm"
             />
           </div>
@@ -102,7 +104,7 @@ export default function ControlBar({
             <input
               type="checkbox"
               checked={mirrorInternal}
-              onChange={e => onMirrorInternalChange(e.target.checked)}
+              onChange={(e) => onMirrorInternalChange(e.target.checked)}
               className="accent-golden w-3 h-3"
             />
             Mirror Internal
@@ -113,7 +115,7 @@ export default function ControlBar({
             <input
               type="checkbox"
               checked={mirrorExternal}
-              onChange={e => onMirrorExternalChange(e.target.checked)}
+              onChange={(e) => onMirrorExternalChange(e.target.checked)}
               className="accent-golden w-3 h-3"
             />
             Mirror External
@@ -127,7 +129,7 @@ export default function ControlBar({
             onClick={onToggleDarkMode}
             className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold rounded border border-gray-500"
           >
-            {darkMode ? 'Light Mode' : 'Dark Mode'}
+            {darkMode ? "Light Mode" : "Dark Mode"}
           </button>
           <button
             type="button"

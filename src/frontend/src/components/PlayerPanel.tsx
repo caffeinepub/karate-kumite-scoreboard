@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 export interface PlayerPanelState {
   name: string;
@@ -11,7 +11,7 @@ export interface PlayerPanelState {
 }
 
 interface PlayerPanelProps {
-  side: 'ao' | 'aka';
+  side: "ao" | "aka";
   state: PlayerPanelState;
   otherHasSenshu: boolean;
   timerMs: number;
@@ -22,11 +22,11 @@ interface PlayerPanelProps {
   onToggleWarning: (index: number) => void;
 }
 
-const WARNING_LABELS = ['1C', '2C', '3C', 'HC', 'H'];
+const WARNING_LABELS = ["1C", "2C", "3C", "HC", "H"];
 
 // Glass button base — shared for score, -1, senshu (inactive)
 const glassBtn =
-  'bg-white/10 backdrop-blur-sm border border-white/25 text-white hover:bg-white/20 active:scale-95 transition-all duration-100';
+  "bg-white/10 backdrop-blur-sm border border-white/25 text-white hover:bg-white/20 active:scale-95 transition-all duration-100";
 
 export default function PlayerPanel({
   side,
@@ -38,15 +38,15 @@ export default function PlayerPanel({
   onToggleSenshu,
   onToggleWarning,
 }: PlayerPanelProps) {
-  const isAo = side === 'ao';
-  const title = isAo ? 'Ao' : 'Aka';
+  const isAo = side === "ao";
+  const title = isAo ? "Ao" : "Aka";
 
   const senshuDisabled = otherHasSenshu && !state.senshu;
 
   return (
     <div
       className={`flex flex-col items-center w-full h-full px-3 py-3 ${
-        isAo ? 'bg-ao-blue' : 'bg-aka-red'
+        isAo ? "bg-ao-blue" : "bg-aka-red"
       }`}
     >
       {/* Title */}
@@ -54,17 +54,16 @@ export default function PlayerPanel({
         {title}
       </h1>
 
-      {/* Logo badge */}
-      <div className="text-white/30 text-xs font-bold tracking-widest mb-1">KKS</div>
-
       {/* Player Name Input */}
       <input
         type="text"
         value={state.name}
-        onChange={e => onNameChange(e.target.value)}
+        onChange={(e) => onNameChange(e.target.value)}
         placeholder="Player Name"
-        className={`w-full max-w-xs text-center text-white placeholder:text-white/60 font-semibold text-sm py-2 px-3 rounded border-0 outline-none mb-3`}
-        style={{ background: isAo ? 'rgba(0,0,80,0.35)' : 'rgba(80,0,0,0.35)' }}
+        className={
+          "w-full max-w-xs text-center text-white placeholder:text-white/60 font-semibold text-sm py-2 px-3 rounded border-0 outline-none mb-3"
+        }
+        style={{ background: isAo ? "rgba(0,0,80,0.35)" : "rgba(80,0,0,0.35)" }}
       />
 
       {/* Score Buttons */}
@@ -75,7 +74,9 @@ export default function PlayerPanel({
           className={`w-full py-3 font-bold text-lg rounded shadow-md ${glassBtn}`}
         >
           <span className="block">Ippon</span>
-          <span className="block text-xs font-normal opacity-70">×{state.ippon}</span>
+          <span className="block text-xs font-normal opacity-70">
+            ×{state.ippon}
+          </span>
         </button>
         <button
           type="button"
@@ -83,7 +84,9 @@ export default function PlayerPanel({
           className={`w-full py-3 font-bold text-lg rounded shadow-md ${glassBtn}`}
         >
           <span className="block">Waza-ari</span>
-          <span className="block text-xs font-normal opacity-70">×{state.wazaari}</span>
+          <span className="block text-xs font-normal opacity-70">
+            ×{state.wazaari}
+          </span>
         </button>
         <button
           type="button"
@@ -91,7 +94,9 @@ export default function PlayerPanel({
           className={`w-full py-3 font-bold text-lg rounded shadow-md ${glassBtn}`}
         >
           <span className="block">Yuko</span>
-          <span className="block text-xs font-normal opacity-70">×{state.yuko}</span>
+          <span className="block text-xs font-normal opacity-70">
+            ×{state.yuko}
+          </span>
         </button>
       </div>
 
@@ -102,10 +107,10 @@ export default function PlayerPanel({
         disabled={senshuDisabled}
         className={`w-full max-w-xs py-2 font-bold text-base rounded border-2 transition-all duration-150 mb-2 ${
           senshuDisabled
-            ? 'opacity-50 cursor-not-allowed bg-white/5 text-white/40 border-white/10'
+            ? "opacity-50 cursor-not-allowed bg-white/5 text-white/40 border-white/10"
             : state.senshu
-            ? 'bg-golden text-black border-golden shadow-golden-glow'
-            : `${glassBtn} border-white/25`
+              ? "bg-golden text-black border-golden shadow-golden-glow"
+              : `${glassBtn} border-white/25`
         }`}
       >
         Senshu
@@ -134,7 +139,7 @@ export default function PlayerPanel({
             onClick={() => onToggleWarning(idx)}
             className={`w-11 h-11 rounded-full border-2 font-bold text-xs transition-all duration-150 ${
               state.warnings[idx]
-                ? 'bg-golden text-black border-golden shadow-golden-glow'
+                ? "bg-golden text-black border-golden shadow-golden-glow"
                 : `${glassBtn} rounded-full border-white/25`
             }`}
           >

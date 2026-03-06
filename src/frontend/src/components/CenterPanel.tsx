@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronUp } from "lucide-react";
+import React from "react";
 
 interface CenterPanelProps {
   timerDisplay: string;
@@ -22,22 +22,24 @@ export default function CenterPanel({
   onResetMatch,
   onAdjustTime,
 }: CenterPanelProps) {
-  const bgClass = darkMode ? 'bg-black' : 'bg-gray-200';
-  const labelClass = darkMode ? 'text-white' : 'text-gray-900';
+  const bgClass = darkMode ? "bg-black" : "bg-gray-200";
+  const labelClass = darkMode ? "text-white" : "text-gray-900";
 
   return (
-    <div className={`flex flex-col items-center ${bgClass} w-full h-full px-3 py-3 gap-2`}>
+    <div
+      className={`flex flex-col items-center ${bgClass} w-full h-full px-3 py-3 gap-2`}
+    >
       {/* Start/Stop Button */}
       <button
         type="button"
         onClick={onToggleTimer}
         className={`w-full py-3 font-bold text-xl rounded transition-all duration-150 ${
           isRunning
-            ? 'bg-red-600 hover:bg-red-700 text-white'
-            : 'bg-timer-green hover:bg-green-500 text-black'
+            ? "bg-red-600 hover:bg-red-700 text-white"
+            : "bg-timer-green hover:bg-green-500 text-black"
         }`}
       >
-        {isRunning ? 'Stop' : 'Start'}
+        {isRunning ? "Stop" : "Start"}
       </button>
 
       {/* Timer Display with Adjust Arrows */}
@@ -87,18 +89,6 @@ export default function CenterPanel({
       >
         Reset match
       </button>
-
-      {/* Logo + Tagline */}
-      <div className="mt-auto pt-2 text-center flex flex-col items-center gap-1">
-        <img
-          src="/assets/uploads/image-1-1.png"
-          alt="Kumite Scoreboard Logo"
-          className="w-12 h-12 object-contain opacity-80"
-        />
-        <span className={`text-[9px] italic leading-tight text-center ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
-          Software designed<br />by Fenil Dav
-        </span>
-      </div>
     </div>
   );
 }

@@ -7,12 +7,16 @@ function getAudioContext(): AudioContext {
   return audioCtx;
 }
 
-function playWhistleTone(startTime: number, duration: number, frequency: number = 2800): void {
+function playWhistleTone(
+  startTime: number,
+  duration: number,
+  frequency = 2800,
+): void {
   const ctx = getAudioContext();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
 
-  osc.type = 'sine';
+  osc.type = "sine";
   osc.frequency.setValueAtTime(frequency, startTime);
   osc.frequency.setValueAtTime(frequency * 1.05, startTime + duration * 0.3);
   osc.frequency.setValueAtTime(frequency * 0.98, startTime + duration * 0.7);
@@ -32,12 +36,12 @@ function playWhistleTone(startTime: number, duration: number, frequency: number 
 export function playSingleWhistle(): void {
   try {
     const ctx = getAudioContext();
-    if (ctx.state === 'suspended') {
+    if (ctx.state === "suspended") {
       ctx.resume();
     }
     const now = ctx.currentTime;
     playWhistleTone(now, 0.5, 2800);
-  } catch (e) {
+  } catch (_e) {
     // silently fail
   }
 }
@@ -45,13 +49,13 @@ export function playSingleWhistle(): void {
 export function playDoubleWhistle(): void {
   try {
     const ctx = getAudioContext();
-    if (ctx.state === 'suspended') {
+    if (ctx.state === "suspended") {
       ctx.resume();
     }
     const now = ctx.currentTime;
     playWhistleTone(now, 0.45, 2800);
     playWhistleTone(now + 0.55, 0.45, 2800);
-  } catch (e) {
+  } catch (_e) {
     // silently fail
   }
 }

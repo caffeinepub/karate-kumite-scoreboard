@@ -1,24 +1,24 @@
-import type { RecordMatch } from '../backend';
+import type { RecordMatch } from "../backend";
 
 function formatTimestamp(ts: bigint): string {
   const ms = Number(ts / BigInt(1_000_000));
-  if (ms === 0) return 'N/A';
+  if (ms === 0) return "N/A";
   return new Date(ms).toLocaleString();
 }
 
 function foulLabel(foul: string): string {
   const map: Record<string, string> = {
-    c1: '1C',
-    c2: '2C',
-    c3: '3C',
-    hansoku: 'HC',
-    hansokumake: 'H',
+    c1: "1C",
+    c2: "2C",
+    c3: "3C",
+    hansoku: "HC",
+    hansokumake: "H",
   };
   return map[foul] ?? foul;
 }
 
 export function exportHistoryToPDF(matches: RecordMatch[]): void {
-  const printWindow = window.open('', '_blank');
+  const printWindow = window.open("", "_blank");
   if (!printWindow) return;
 
   const rows = matches
@@ -29,21 +29,21 @@ export function exportHistoryToPDF(matches: RecordMatch[]): void {
       <td>${formatTimestamp(m.timestamp)}</td>
       <td>${m.category}</td>
       <td>${m.tatamiNumber}</td>
-      <td>${m.ao.name || 'N/A'}</td>
+      <td>${m.ao.name || "N/A"}</td>
       <td>${Number(m.ao.ippon) * 3 + Number(m.ao.wazaari) * 2 + Number(m.ao.yuko)}</td>
       <td>${m.ao.ippon}/${m.ao.wazaari}/${m.ao.yuko}</td>
-      <td>${m.ao.senshu ? 'Yes' : 'No'}</td>
-      <td>${m.ao.warnings.map(w => foulLabel(String(w.foul))).join(', ') || '-'}</td>
-      <td>${m.aka.name || 'N/A'}</td>
+      <td>${m.ao.senshu ? "Yes" : "No"}</td>
+      <td>${m.ao.warnings.map((w) => foulLabel(String(w.foul))).join(", ") || "-"}</td>
+      <td>${m.aka.name || "N/A"}</td>
       <td>${Number(m.aka.ippon) * 3 + Number(m.aka.wazaari) * 2 + Number(m.aka.yuko)}</td>
       <td>${m.aka.ippon}/${m.aka.wazaari}/${m.aka.yuko}</td>
-      <td>${m.aka.senshu ? 'Yes' : 'No'}</td>
-      <td>${m.aka.warnings.map(w => foulLabel(String(w.foul))).join(', ') || '-'}</td>
-      <td>${m.winner || '-'}</td>
+      <td>${m.aka.senshu ? "Yes" : "No"}</td>
+      <td>${m.aka.warnings.map((w) => foulLabel(String(w.foul))).join(", ") || "-"}</td>
+      <td>${m.winner || "-"}</td>
       <td>${m.totalTime}</td>
-    </tr>`
+    </tr>`,
     )
-    .join('');
+    .join("");
 
   printWindow.document.write(`
     <!DOCTYPE html>

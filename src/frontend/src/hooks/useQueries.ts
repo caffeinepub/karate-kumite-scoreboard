@@ -1,13 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect, useCallback } from 'react';
-import { useActor } from './useActor';
-import type { RecordMatch } from '../backend';
-import { loadMatchesLocal, saveMatchLocal } from '../utils/localHistory';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
+import type { RecordMatch } from "../backend";
+import { loadMatchesLocal, saveMatchLocal } from "../utils/localHistory";
+import { useActor } from "./useActor";
 
 export function useGetAllMatches() {
   const { actor, isFetching } = useActor();
   return useQuery<RecordMatch[]>({
-    queryKey: ['matches'],
+    queryKey: ["matches"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getAllMatches();
@@ -20,22 +20,24 @@ export function useGetAllMatches() {
 // new match is saved or the component is mounted. This is the primary source
 // used by HistoryModal so that history works even without a canister connection.
 export function useLocalHistory() {
-  const [matches, setMatches] = useState<RecordMatch[]>(() => loadMatchesLocal());
+  const [matches, setMatches] = useState<RecordMatch[]>(() =>
+    loadMatchesLocal(),
+  );
 
   const refresh = useCallback(() => setMatches(loadMatchesLocal()), []);
 
   // Listen for storage events (cross-tab) and custom 'match-saved' events (same tab)
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'kumite_match_history_v1') refresh();
+      if (e.key === "kumite_match_history_v1") refresh();
     };
     const onMatchSaved = () => refresh();
 
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('match-saved', onMatchSaved);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("match-saved", onMatchSaved);
     return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('match-saved', onMatchSaved);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("match-saved", onMatchSaved);
     };
   }, [refresh]);
 
@@ -50,15 +52,18 @@ export function useSaveMatchLocal() {
     // 1. Always save to localStorage immediately — this is reliable
     saveMatchLocal(match);
     // Fire a custom event so same-tab listeners know to refresh
-    window.dispatchEvent(new CustomEvent('match-saved'));
+    window.dispatchEvent(new CustomEvent("match-saved"));
 
     // 2. Best-effort save to backend canister
     if (actor) {
-      actor.saveMatch(match).then(() => {
-        queryClient.invalidateQueries({ queryKey: ['matches'] });
-      }).catch(() => {
-        // silently ignore — localStorage copy is the source of truth
-      });
+      actor
+        .saveMatch(match)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ["matches"] });
+        })
+        .catch(() => {
+          // silently ignore — localStorage copy is the source of truth
+        });
     }
   };
 
@@ -68,9 +73,10 @@ export function useSaveMatchLocal() {
 export function useGetDefaultSettings() {
   const { actor, isFetching } = useActor();
   return useQuery({
-    queryKey: ['defaultSettings'],
+    queryKey: ["defaultSettings"],
     queryFn: async () => {
-      if (!actor) return { minutes: BigInt(1), seconds: BigInt(30), tatamiNumber: '1' };
+      if (!actor)
+        return { minutes: BigInt(1), seconds: BigInt(30), tatamiNumber: "1" };
       return actor.getDefaultSettings();
     },
     enabled: !!actor && !isFetching,
@@ -82,11 +88,11 @@ export function useSaveMatch() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (match: RecordMatch) => {
-      if (!actor) throw new Error('Actor not ready');
+      if (!actor) throw new Error("Actor not ready");
       return actor.saveMatch(match);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
     },
   });
 }
@@ -100,15 +106,15 @@ export function useUpdateSettings() {
       minutes?: bigint;
       seconds?: bigint;
     }) => {
-      if (!actor) throw new Error('Actor not ready');
+      if (!actor) throw new Error("Actor not ready");
       return actor.updateSettings(
         params.tatamiNumber ?? null,
         params.minutes ?? null,
-        params.seconds ?? null
+        params.seconds ?? null,
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['defaultSettings'] });
+      queryClient.invalidateQueries({ queryKey: ["defaultSettings"] });
     },
   });
 }

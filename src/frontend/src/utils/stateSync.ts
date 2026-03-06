@@ -21,35 +21,51 @@ export interface ScoreboardState {
   timerMs: number;
   isRunning: boolean;
   tatamiNo: string;
-  winner: { side: 'Ao' | 'Aka'; name: string } | null;
+  winner: { side: "Ao" | "Aka"; name: string; score: number } | null;
   mirrorExternal: boolean;
   category: string;
   darkMode: boolean;
 }
 
-export const STATE_KEY = 'kumite_scoreboard_state_v3';
-const CHANNEL_NAME = 'kumite_scoreboard_bc_v3';
+// Use a simple, stable key/channel name — no version suffix to avoid stale conflicts
+export const STATE_KEY = "kumite_sb_state";
+const CHANNEL_NAME = "kumite_sb_channel";
+
+// Persistent sender channel — created once per page load
+let _senderChannel: BroadcastChannel | null = null;
+
+function ensureSenderChannel(): BroadcastChannel | null {
+  if (typeof BroadcastChannel === "undefined") return null;
+  if (!_senderChannel) {
+    try {
+      _senderChannel = new BroadcastChannel(CHANNEL_NAME);
+    } catch {
+      return null;
+    }
+  }
+  return _senderChannel;
+}
 
 export function broadcastState(state: ScoreboardState): void {
+  const ts = Date.now();
   try {
-    const payload = JSON.stringify({ state, ts: Date.now() });
-
-    // 1. localStorage — triggers storage events in other windows + polling fallback
-    localStorage.setItem(STATE_KEY, payload);
-
-    // 2. BroadcastChannel — instant for same-origin cross-window communication
-    //    Create a new channel per broadcast so listeners always receive fresh messages
-    if (typeof BroadcastChannel !== 'undefined') {
-      try {
-        const ch = new BroadcastChannel(CHANNEL_NAME);
-        ch.postMessage({ type: 'STATE_UPDATE', state });
-        // Close after a short delay to allow message delivery
-        setTimeout(() => ch.close(), 200);
-      } catch (_) {
-        // ignore
-      }
-    }
-  } catch (_) {
-    // silently fail
+    // Write to localStorage — triggers storage events in other windows
+    localStorage.setItem(STATE_KEY, JSON.stringify({ state, ts }));
+  } catch {
+    // ignore
   }
+  try {
+    // Send via BroadcastChannel — instant same-origin cross-window delivery
+    const ch = ensureSenderChannel();
+    if (ch) {
+      ch.postMessage({ type: "STATE_UPDATE", state, ts });
+    }
+  } catch {
+    // If channel died, recreate it next time
+    _senderChannel = null;
+  }
+}
+
+export function getChannelName(): string {
+  return CHANNEL_NAME;
 }

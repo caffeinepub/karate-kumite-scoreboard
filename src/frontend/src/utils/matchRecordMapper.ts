@@ -1,4 +1,9 @@
-import { FoulType, type RecordMatch, type RecordState, type Warning } from '../backend';
+import {
+  FoulType,
+  type RecordMatch,
+  type RecordState,
+  type Warning,
+} from "../backend";
 
 export interface PlayerState {
   name: string;
@@ -23,8 +28,12 @@ function mapPlayerState(player: PlayerState): RecordState {
   const warnings: Warning[] = player.warnings
     .map((active, idx) =>
       active
-        ? { foul: WARNING_FOULS[idx], issuedBy: BigInt(0), crowdReaction: BigInt(0) }
-        : null
+        ? {
+            foul: WARNING_FOULS[idx],
+            issuedBy: BigInt(0),
+            crowdReaction: BigInt(0),
+          }
+        : null,
     )
     .filter((w): w is Warning => w !== null);
 
