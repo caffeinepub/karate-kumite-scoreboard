@@ -8,6 +8,7 @@ import WinnerPopup from "./components/WinnerPopup";
 import { useGetDefaultSettings, useSaveMatchLocal } from "./hooks/useQueries";
 import { useTimer } from "./hooks/useTimer";
 import ExternalDisplay from "./pages/ExternalDisplay";
+import { playDoubleWhistle } from "./utils/audioService";
 import { buildRecordMatch } from "./utils/matchRecordMapper";
 import { broadcastState, setExternalWindow } from "./utils/stateSync";
 
@@ -66,15 +67,35 @@ function MainScoreboard() {
   const [ao, setAo] = useState<PlayerPanelState>(DEFAULT_PLAYER());
   const [aka, setAka] = useState<PlayerPanelState>(DEFAULT_PLAYER());
 
+  // Load persisted file settings from localStorage immediately
+  const _localFileSettings = (() => {
+    try {
+      const raw = localStorage.getItem("kumite_file_settings_v1");
+      return raw
+        ? (JSON.parse(raw) as {
+            minutes: number;
+            seconds: number;
+            tatamiNo: string;
+          })
+        : null;
+    } catch {
+      return null;
+    }
+  })();
+
   const [category, setCategory] = useState("");
   const [winningScore, setWinningScore] = useState(6);
   const [winByLead, setWinByLead] = useState(false);
   const [leadAmount, setLeadAmount] = useState(2);
   const [mirrorInternal, setMirrorInternal] = useState(false);
   const [mirrorExternal, setMirrorExternal] = useState(false);
-  const [tatamiNo, setTatamiNo] = useState("1");
-  const [matchTimeMinutes, setMatchTimeMinutes] = useState(1);
-  const [matchTimeSeconds, setMatchTimeSeconds] = useState(30);
+  const [tatamiNo, setTatamiNo] = useState(_localFileSettings?.tatamiNo ?? "1");
+  const [matchTimeMinutes, setMatchTimeMinutes] = useState(
+    _localFileSettings?.minutes ?? 1,
+  );
+  const [matchTimeSeconds, setMatchTimeSeconds] = useState(
+    _localFileSettings?.seconds ?? 30,
+  );
   const [darkMode, setDarkMode] = useState(true);
 
   const [winner, setWinner] = useState<{
@@ -89,7 +110,10 @@ function MainScoreboard() {
   const winnerDeclaredRef = useRef(false);
   const matchSavedRef = useRef(false);
 
-  const timer = useTimer((matchTimeMinutes * 60 + matchTimeSeconds) * 1000);
+  const _initialTimerMs = _localFileSettings
+    ? (_localFileSettings.minutes * 60 + _localFileSettings.seconds) * 1000
+    : (matchTimeMinutes * 60 + matchTimeSeconds) * 1000;
+  const timer = useTimer(_initialTimerMs);
 
   // Apply default settings from backend — only on first successful load
   const timerSetDuration = timer.setDuration;
@@ -139,26 +163,20 @@ function MainScoreboard() {
         detectedWinner = { side: "Aka", name: aka.name, score: aka.score };
       }
     } else {
-      // Senshu tie-break: when both players are tied at the winning threshold
-      // and one has senshu, both get +1 but the senshu holder wins
-      if (
-        winningScore > 0 &&
-        ao.score === aka.score &&
-        ao.score >= winningScore
-      ) {
-        // Both reached/exceeded winning score at the same time with equal scores
-        if (ao.senshu && !aka.senshu) {
+      if (winningScore > 0) {
+        // When both are tied at or above winning score, senshu holder wins
+        if (ao.score === aka.score && ao.score >= winningScore) {
+          if (ao.senshu && !aka.senshu) {
+            detectedWinner = { side: "Ao", name: ao.name, score: ao.score };
+          } else if (aka.senshu && !ao.senshu) {
+            detectedWinner = { side: "Aka", name: aka.name, score: aka.score };
+          }
+          // If both have senshu or neither → no winner yet, need more points
+        } else if (ao.score >= winningScore && ao.score > aka.score) {
+          // Ao clearly leads at winning score
           detectedWinner = { side: "Ao", name: ao.name, score: ao.score };
-        } else if (aka.senshu && !ao.senshu) {
-          detectedWinner = { side: "Aka", name: aka.name, score: aka.score };
-        }
-        // If both have senshu or neither, fall through to normal logic
-      }
-
-      if (!detectedWinner) {
-        if (ao.score >= winningScore && winningScore > 0) {
-          detectedWinner = { side: "Ao", name: ao.name, score: ao.score };
-        } else if (aka.score >= winningScore && winningScore > 0) {
+        } else if (aka.score >= winningScore && aka.score > ao.score) {
+          // Aka clearly leads at winning score
           detectedWinner = { side: "Aka", name: aka.name, score: aka.score };
         }
       }
@@ -178,6 +196,8 @@ function MainScoreboard() {
       setWinner(detectedWinner);
       setShowWinnerPopup(true);
       timer.stop();
+      // Play end-of-match double whistle
+      playDoubleWhistle();
       // Auto-save match
       if (!matchSavedRef.current) {
         matchSavedRef.current = true;
@@ -425,24 +445,51 @@ function MainScoreboard() {
   );
 
   // Senshu tie-break scoring:
-  // When both players are TIED at or above winningScore and one has senshu,
-  // any additional score gives +1 to BOTH, but the senshu holder wins.
+  // When both players are TIED and the next score would put the scorer at winningScore
+  // (or already at/above), and the OTHER player has senshu, both get +1 and the senshu holder wins.
+  // Also triggers when BOTH are already tied at or above winning score.
   const handleAoScore = useCallback(
     (points: number) => {
-      const isTied = ao.score === aka.score;
-      const atOrAboveWinning =
-        !winByLead && winningScore > 0 && ao.score >= winningScore;
-      if (isTied && atOrAboveWinning && ao.senshu && !aka.senshu) {
-        // Senshu tie-break: both get +1, Ao (senshu) wins
-        updateAo((prev) => ({
-          ...prev,
-          score: prev.score + 1,
-          ippon: points === 3 ? prev.ippon + 1 : prev.ippon,
-          wazaari: points === 2 ? prev.wazaari + 1 : prev.wazaari,
-          yuko: points === 1 ? prev.yuko + 1 : prev.yuko,
-        }));
-        updateAka((prev) => ({ ...prev, score: prev.score + 1 }));
-        return;
+      if (!winByLead && winningScore > 0) {
+        const isTied = ao.score === aka.score;
+        // Senshu tie-break: Aka has senshu, Ao is about to reach/exceed winning score from a tied position
+        const aoWouldReachWinning = ao.score + 1 >= winningScore;
+        const alreadyTiedAtWinning = isTied && ao.score >= winningScore;
+        if (
+          isTied &&
+          !ao.senshu &&
+          aka.senshu &&
+          (aoWouldReachWinning || alreadyTiedAtWinning)
+        ) {
+          // Senshu tie-break: both get +1, Aka (senshu) wins
+          updateAo((prev) => ({
+            ...prev,
+            score: prev.score + 1,
+            ippon: points === 3 ? prev.ippon + 1 : prev.ippon,
+            wazaari: points === 2 ? prev.wazaari + 1 : prev.wazaari,
+            yuko: points === 1 ? prev.yuko + 1 : prev.yuko,
+          }));
+          updateAka((prev) => ({ ...prev, score: prev.score + 1 }));
+          return;
+        }
+        // Senshu tie-break: Ao has senshu, Ao is about to reach/exceed winning score from a tied position
+        if (
+          isTied &&
+          ao.senshu &&
+          !aka.senshu &&
+          (aoWouldReachWinning || alreadyTiedAtWinning)
+        ) {
+          // Both get +1, Ao (senshu) wins
+          updateAo((prev) => ({
+            ...prev,
+            score: prev.score + 1,
+            ippon: points === 3 ? prev.ippon + 1 : prev.ippon,
+            wazaari: points === 2 ? prev.wazaari + 1 : prev.wazaari,
+            yuko: points === 1 ? prev.yuko + 1 : prev.yuko,
+          }));
+          updateAka((prev) => ({ ...prev, score: prev.score + 1 }));
+          return;
+        }
       }
       updateAo((prev) => ({
         ...prev,
@@ -466,20 +513,44 @@ function MainScoreboard() {
 
   const handleAkaScore = useCallback(
     (points: number) => {
-      const isTied = aka.score === ao.score;
-      const atOrAboveWinning =
-        !winByLead && winningScore > 0 && aka.score >= winningScore;
-      if (isTied && atOrAboveWinning && aka.senshu && !ao.senshu) {
-        // Senshu tie-break: both get +1, Aka (senshu) wins
-        updateAka((prev) => ({
-          ...prev,
-          score: prev.score + 1,
-          ippon: points === 3 ? prev.ippon + 1 : prev.ippon,
-          wazaari: points === 2 ? prev.wazaari + 1 : prev.wazaari,
-          yuko: points === 1 ? prev.yuko + 1 : prev.yuko,
-        }));
-        updateAo((prev) => ({ ...prev, score: prev.score + 1 }));
-        return;
+      if (!winByLead && winningScore > 0) {
+        const isTied = aka.score === ao.score;
+        const akaWouldReachWinning = aka.score + 1 >= winningScore;
+        const alreadyTiedAtWinning = isTied && aka.score >= winningScore;
+        if (
+          isTied &&
+          !aka.senshu &&
+          ao.senshu &&
+          (akaWouldReachWinning || alreadyTiedAtWinning)
+        ) {
+          // Senshu tie-break: both get +1, Ao (senshu) wins
+          updateAka((prev) => ({
+            ...prev,
+            score: prev.score + 1,
+            ippon: points === 3 ? prev.ippon + 1 : prev.ippon,
+            wazaari: points === 2 ? prev.wazaari + 1 : prev.wazaari,
+            yuko: points === 1 ? prev.yuko + 1 : prev.yuko,
+          }));
+          updateAo((prev) => ({ ...prev, score: prev.score + 1 }));
+          return;
+        }
+        if (
+          isTied &&
+          aka.senshu &&
+          !ao.senshu &&
+          (akaWouldReachWinning || alreadyTiedAtWinning)
+        ) {
+          // Both get +1, Aka (senshu) wins
+          updateAka((prev) => ({
+            ...prev,
+            score: prev.score + 1,
+            ippon: points === 3 ? prev.ippon + 1 : prev.ippon,
+            wazaari: points === 2 ? prev.wazaari + 1 : prev.wazaari,
+            yuko: points === 1 ? prev.yuko + 1 : prev.yuko,
+          }));
+          updateAo((prev) => ({ ...prev, score: prev.score + 1 }));
+          return;
+        }
       }
       updateAka((prev) => ({
         ...prev,
@@ -502,11 +573,34 @@ function MainScoreboard() {
   );
 
   const handleAoDecrement = useCallback(() => {
-    updateAo((prev) => ({ ...prev, score: Math.max(0, prev.score - 1) }));
+    updateAo((prev) => {
+      if (prev.score <= 0) return prev;
+      // Deduct from the highest-value score type first
+      let { ippon, wazaari, yuko, score } = prev;
+      if (ippon > 0) {
+        ippon -= 1;
+      } else if (wazaari > 0) {
+        wazaari -= 1;
+      } else if (yuko > 0) {
+        yuko -= 1;
+      }
+      return { ...prev, score: Math.max(0, score - 1), ippon, wazaari, yuko };
+    });
   }, [updateAo]);
 
   const handleAkaDecrement = useCallback(() => {
-    updateAka((prev) => ({ ...prev, score: Math.max(0, prev.score - 1) }));
+    updateAka((prev) => {
+      if (prev.score <= 0) return prev;
+      let { ippon, wazaari, yuko, score } = prev;
+      if (ippon > 0) {
+        ippon -= 1;
+      } else if (wazaari > 0) {
+        wazaari -= 1;
+      } else if (yuko > 0) {
+        yuko -= 1;
+      }
+      return { ...prev, score: Math.max(0, score - 1), ippon, wazaari, yuko };
+    });
   }, [updateAka]);
 
   // Senshu mutual exclusion: only allow toggling ON if other doesn't have senshu

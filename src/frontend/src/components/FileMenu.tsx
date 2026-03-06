@@ -2,6 +2,33 @@ import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useGetDefaultSettings, useUpdateSettings } from "../hooks/useQueries";
 
+const SETTINGS_KEY = "kumite_file_settings_v1";
+
+function loadLocalSettings(): {
+  minutes: number;
+  seconds: number;
+  tatamiNo: string;
+} | null {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveLocalSettings(minutes: number, seconds: number, tatamiNo: string) {
+  try {
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({ minutes, seconds, tatamiNo }),
+    );
+  } catch {
+    // ignore
+  }
+}
+
 interface FileMenuProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,12 +47,15 @@ export default function FileMenu({
   const { data: settings } = useGetDefaultSettings();
   const updateSettings = useUpdateSettings();
 
-  const [minutes, setMinutes] = useState(1);
-  const [seconds, setSeconds] = useState(30);
-  const [tatamiNo, setTatamiNo] = useState("1");
+  // Load from localStorage first (instant), fallback to canister data
+  const localSettings = loadLocalSettings();
+  const [minutes, setMinutes] = useState(localSettings?.minutes ?? 1);
+  const [seconds, setSeconds] = useState(localSettings?.seconds ?? 30);
+  const [tatamiNo, setTatamiNo] = useState(localSettings?.tatamiNo ?? "1");
 
+  // If canister data loads and no local settings exist yet, populate from canister
   useEffect(() => {
-    if (settings) {
+    if (settings && !loadLocalSettings()) {
       setMinutes(Number(settings.minutes));
       setSeconds(Number(settings.seconds));
       setTatamiNo(settings.tatamiNumber);
@@ -33,12 +63,20 @@ export default function FileMenu({
   }, [settings]);
 
   const handleSave = async () => {
-    await updateSettings.mutateAsync({
-      tatamiNumber: tatamiNo,
-      minutes: BigInt(minutes),
-      seconds: BigInt(seconds),
-    });
+    // Save to localStorage immediately so it persists and loads next time
+    saveLocalSettings(minutes, seconds, tatamiNo);
+    // Apply to the scoreboard right away
     onSettingsApplied(minutes, seconds, tatamiNo);
+    // Best-effort save to canister
+    try {
+      await updateSettings.mutateAsync({
+        tatamiNumber: tatamiNo,
+        minutes: BigInt(minutes),
+        seconds: BigInt(seconds),
+      });
+    } catch {
+      // ignore — localStorage is source of truth
+    }
     onClose();
   };
 
