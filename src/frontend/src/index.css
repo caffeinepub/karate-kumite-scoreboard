@@ -51,11 +51,12 @@
     height: 100%;
     margin: 0;
     padding: 0;
+    background: #000 !important;
   }
 
   body {
-    @apply text-foreground;
     font-family: "Inter", sans-serif;
+    color: #fff;
     width: 100%;
     min-height: 100vh;
     height: 100%;
@@ -71,6 +72,7 @@
     height: 100vh;
     margin: 0;
     padding: 0;
+    background: #000 !important;
     display: flex;
     flex-direction: column;
   }
