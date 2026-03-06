@@ -11,9 +11,13 @@ interface HistoryModalProps {
 }
 
 function formatTimestamp(ts: bigint): string {
-  const ms = Number(ts / BigInt(1_000_000));
-  if (ms === 0) return "N/A";
-  return new Date(ms).toLocaleString();
+  try {
+    const ms = Number(ts / BigInt(1_000_000));
+    if (ms === 0) return "N/A";
+    return new Date(ms).toLocaleString();
+  } catch {
+    return "N/A";
+  }
 }
 
 function foulLabel(foul: string): string {
@@ -28,51 +32,96 @@ function foulLabel(foul: string): string {
 }
 
 function MatchRow({ match, index }: { match: RecordMatch; index: number }) {
-  const aoScore =
-    Number(match.ao.ippon) * 3 +
-    Number(match.ao.wazaari) * 2 +
-    Number(match.ao.yuko);
-  const akaScore =
-    Number(match.aka.ippon) * 3 +
-    Number(match.aka.wazaari) * 2 +
-    Number(match.aka.yuko);
+  let aoScore = 0;
+  let akaScore = 0;
+  try {
+    aoScore =
+      Number(match.ao.ippon) * 3 +
+      Number(match.ao.wazaari) * 2 +
+      Number(match.ao.yuko);
+    akaScore =
+      Number(match.aka.ippon) * 3 +
+      Number(match.aka.wazaari) * 2 +
+      Number(match.aka.yuko);
+  } catch {
+    // fallback
+  }
 
   return (
-    <div className="bg-gray-800 rounded-lg p-3 mb-2 text-sm">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-gray-400 text-xs">
-          #{index + 1} · {formatTimestamp(match.timestamp)}
+    <div
+      style={{
+        backgroundColor: "#1f2937",
+        borderRadius: 8,
+        padding: "10px 12px",
+        marginBottom: 8,
+        fontSize: 13,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 8,
+        }}
+      >
+        <span style={{ color: "#9ca3af", fontSize: 11 }}>
+          #{index + 1} &middot; {formatTimestamp(match.timestamp)}
         </span>
-        <div className="flex gap-2">
-          <span className="text-gray-300 text-xs">
+        <div style={{ display: "flex", gap: 8 }}>
+          <span style={{ color: "#d1d5db", fontSize: 11 }}>
             Category:{" "}
-            <span className="text-white">{match.category || "N/A"}</span>
+            <span style={{ color: "#fff" }}>{match.category || "N/A"}</span>
           </span>
-          <span className="text-gray-300 text-xs">
-            Tatami: <span className="text-white">{match.tatamiNumber}</span>
+          <span style={{ color: "#d1d5db", fontSize: 11 }}>
+            Tatami: <span style={{ color: "#fff" }}>{match.tatamiNumber}</span>
           </span>
-          <span className="text-gray-300 text-xs">
-            Time: <span className="text-white">{match.totalTime}</span>
+          <span style={{ color: "#d1d5db", fontSize: 11 }}>
+            Time: <span style={{ color: "#fff" }}>{match.totalTime}</span>
           </span>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {/* AO */}
-        <div className="bg-ao-blue/30 rounded p-2 border border-ao-blue/50">
-          <div className="text-blue-300 font-bold text-base mb-1">
-            AO — {match.ao.name || "N/A"}
+        <div
+          style={{
+            backgroundColor: "oklch(0.22 0.10 255)",
+            border: "1px solid oklch(0.35 0.18 255)",
+            borderRadius: 6,
+            padding: 8,
+          }}
+        >
+          <div
+            style={{
+              color: "#93c5fd",
+              fontWeight: 700,
+              fontSize: 14,
+              marginBottom: 4,
+            }}
+          >
+            AO &mdash; {match.ao.name || "N/A"}
           </div>
-          <div className="text-white text-xl font-black">{aoScore}</div>
-          <div className="text-gray-300 text-xs">
+          <div style={{ color: "#fff", fontSize: 22, fontWeight: 900 }}>
+            {aoScore}
+          </div>
+          <div style={{ color: "#d1d5db", fontSize: 11 }}>
             I:{String(match.ao.ippon)} W:{String(match.ao.wazaari)} Y:
             {String(match.ao.yuko)}
           </div>
-          <div className="text-xs mt-1">
+          <div style={{ fontSize: 11, marginTop: 4 }}>
             {match.ao.senshu && (
-              <span className="text-golden font-bold mr-2">Senshu</span>
+              <span
+                style={{
+                  color: "oklch(0.82 0.18 85)",
+                  fontWeight: 700,
+                  marginRight: 6,
+                }}
+              >
+                Senshu
+              </span>
             )}
             {match.ao.warnings.length > 0 && (
-              <span className="text-orange-400">
+              <span style={{ color: "#fb923c" }}>
                 {match.ao.warnings
                   .map((w) => foulLabel(String(w.foul)))
                   .join(" ")}
@@ -81,21 +130,45 @@ function MatchRow({ match, index }: { match: RecordMatch; index: number }) {
           </div>
         </div>
         {/* AKA */}
-        <div className="bg-aka-red/30 rounded p-2 border border-aka-red/50">
-          <div className="text-red-300 font-bold text-base mb-1">
-            AKA — {match.aka.name || "N/A"}
+        <div
+          style={{
+            backgroundColor: "oklch(0.22 0.10 25)",
+            border: "1px solid oklch(0.35 0.18 25)",
+            borderRadius: 6,
+            padding: 8,
+          }}
+        >
+          <div
+            style={{
+              color: "#fca5a5",
+              fontWeight: 700,
+              fontSize: 14,
+              marginBottom: 4,
+            }}
+          >
+            AKA &mdash; {match.aka.name || "N/A"}
           </div>
-          <div className="text-white text-xl font-black">{akaScore}</div>
-          <div className="text-gray-300 text-xs">
+          <div style={{ color: "#fff", fontSize: 22, fontWeight: 900 }}>
+            {akaScore}
+          </div>
+          <div style={{ color: "#d1d5db", fontSize: 11 }}>
             I:{String(match.aka.ippon)} W:{String(match.aka.wazaari)} Y:
             {String(match.aka.yuko)}
           </div>
-          <div className="text-xs mt-1">
+          <div style={{ fontSize: 11, marginTop: 4 }}>
             {match.aka.senshu && (
-              <span className="text-golden font-bold mr-2">Senshu</span>
+              <span
+                style={{
+                  color: "oklch(0.82 0.18 85)",
+                  fontWeight: 700,
+                  marginRight: 6,
+                }}
+              >
+                Senshu
+              </span>
             )}
             {match.aka.warnings.length > 0 && (
-              <span className="text-orange-400">
+              <span style={{ color: "#fb923c" }}>
                 {match.aka.warnings
                   .map((w) => foulLabel(String(w.foul)))
                   .join(" ")}
@@ -105,8 +178,16 @@ function MatchRow({ match, index }: { match: RecordMatch; index: number }) {
         </div>
       </div>
       {match.winner && (
-        <div className="mt-2 text-center text-golden font-bold text-sm">
-          🏆 Winner: {match.winner}
+        <div
+          style={{
+            marginTop: 8,
+            textAlign: "center",
+            color: "oklch(0.82 0.18 85)",
+            fontWeight: 700,
+            fontSize: 13,
+          }}
+        >
+          Winner: {match.winner}
         </div>
       )}
     </div>
@@ -135,21 +216,74 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="bg-gray-900 rounded-xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col border border-gray-700 shadow-2xl">
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.85)",
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "#111827",
+          borderRadius: 12,
+          width: "100%",
+          maxWidth: 780,
+          margin: "0 16px",
+          maxHeight: "85vh",
+          display: "flex",
+          flexDirection: "column",
+          border: "1px solid #374151",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.8)",
+          overflow: "hidden",
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
-          <h2 className="text-white font-bold text-xl">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "14px 20px",
+            borderBottom: "1px solid #374151",
+            flexShrink: 0,
+          }}
+        >
+          <h2
+            style={{ color: "#fff", fontWeight: 700, fontSize: 20, margin: 0 }}
+          >
             Match History{" "}
-            <span className="text-gray-500 text-sm font-normal">
+            <span style={{ color: "#6b7280", fontSize: 13, fontWeight: 400 }}>
               ({matches.length} matches)
             </span>
           </h2>
-          <div className="flex gap-2">
+          <div style={{ display: "flex", gap: 8 }}>
             <button
               type="button"
               onClick={refresh}
-              className="flex items-center gap-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold rounded transition-all"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "6px 10px",
+                backgroundColor: "#374151",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 600,
+                borderRadius: 6,
+                border: "none",
+                cursor: "pointer",
+              }}
               title="Refresh history"
             >
               <RefreshCw size={14} />
@@ -158,7 +292,20 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
               type="button"
               onClick={() => matches.length > 0 && exportHistoryToPDF(matches)}
               disabled={matches.length === 0}
-              className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-semibold rounded transition-all"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "6px 10px",
+                backgroundColor: matches.length === 0 ? "#1e3a8a" : "#2563eb",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 600,
+                borderRadius: 6,
+                border: "none",
+                cursor: matches.length === 0 ? "not-allowed" : "pointer",
+                opacity: matches.length === 0 ? 0.5 : 1,
+              }}
             >
               <Download size={14} />
               Export PDF
@@ -167,7 +314,20 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
               type="button"
               onClick={handleClearHistory}
               disabled={matches.length === 0}
-              className="flex items-center gap-1 px-3 py-1.5 bg-red-700 hover:bg-red-600 disabled:opacity-40 text-white text-sm font-semibold rounded transition-all"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "6px 10px",
+                backgroundColor: "#b91c1c",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 600,
+                borderRadius: 6,
+                border: "none",
+                cursor: matches.length === 0 ? "not-allowed" : "pointer",
+                opacity: matches.length === 0 ? 0.5 : 1,
+              }}
               title="Clear all history"
             >
               <Trash2 size={14} />
@@ -176,7 +336,15 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-white transition-colors"
+              style={{
+                padding: 6,
+                color: "#9ca3af",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+              }}
             >
               <X size={20} />
             </button>
@@ -184,11 +352,19 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
           {matches.length === 0 ? (
-            <div className="text-center text-gray-400 py-10">
-              <p className="text-lg mb-2">No matches recorded yet.</p>
-              <p className="text-sm text-gray-500">
+            <div
+              style={{
+                textAlign: "center",
+                color: "#9ca3af",
+                padding: "40px 0",
+              }}
+            >
+              <p style={{ fontSize: 17, marginBottom: 8 }}>
+                No matches recorded yet.
+              </p>
+              <p style={{ fontSize: 13, color: "#6b7280" }}>
                 Matches are saved automatically when you click Reset Match.
               </p>
             </div>

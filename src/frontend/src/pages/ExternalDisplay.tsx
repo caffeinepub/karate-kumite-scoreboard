@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
+  CHANNEL_NAME,
+  POSTMSG_TYPE,
   STATE_KEY,
   type ScoreboardState,
-  getChannelName,
 } from "../utils/stateSync";
 
 const WARNING_LABELS = ["1C", "2C", "3C", "HC", "H"];
@@ -57,64 +58,100 @@ export default function ExternalDisplay() {
   const [showWinner, setShowWinner] = useState(false);
   const lastTsRef = useRef<number>(0);
 
-  useEffect(() => {
-    const CHANNEL_NAME = getChannelName();
-
-    function applyState(newState: ScoreboardState) {
+  const applyState = useCallback((newState: ScoreboardState, ts: number) => {
+    if (ts >= lastTsRef.current) {
+      lastTsRef.current = ts;
       setState(newState);
       setShowWinner(!!newState.winner);
     }
+  }, []);
 
-    // Method 1: BroadcastChannel — fastest, fires instantly across same-origin tabs
-    let channel: BroadcastChannel | null = null;
-    try {
-      channel = new BroadcastChannel(CHANNEL_NAME);
-      channel.addEventListener("message", (e: MessageEvent) => {
-        if (e.data?.type === "STATE_UPDATE" && e.data.state) {
-          applyState(e.data.state as ScoreboardState);
-        }
-      });
-    } catch {
-      channel = null;
+  useEffect(() => {
+    // Signal to the main window that this external display is ready
+    // Method A: postMessage to opener (works when opened as popup)
+    if (window.opener && !window.opener.closed) {
+      try {
+        window.opener.postMessage(
+          { type: "KUMITE_READY_V8" },
+          window.location.origin,
+        );
+      } catch {
+        // ignore
+      }
     }
 
-    // Method 2: storage event — fires when ANOTHER window writes to localStorage
+    // Method 1: Listen for direct postMessage from main window (most reliable)
+    function handleMessage(e: MessageEvent) {
+      // Accept messages from the same origin only
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === POSTMSG_TYPE && e.data.state) {
+        applyState(e.data.state as ScoreboardState, e.data.ts ?? Date.now());
+      }
+    }
+    window.addEventListener("message", handleMessage);
+
+    // Method 2: BroadcastChannel
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        channel = new BroadcastChannel(CHANNEL_NAME);
+        channel.onmessage = (e: MessageEvent) => {
+          if (e.data?.type === "STATE_UPDATE" && e.data.state) {
+            applyState(
+              e.data.state as ScoreboardState,
+              e.data.ts ?? Date.now(),
+            );
+          }
+        };
+      } catch {
+        channel = null;
+      }
+    }
+
+    // Method 3: localStorage polling — 30ms guaranteed fallback
+    const poller = setInterval(() => {
+      try {
+        const raw = localStorage.getItem(STATE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as {
+          state: ScoreboardState;
+          ts: number;
+        };
+        const ts: number = parsed?.ts ?? 0;
+        if (ts > lastTsRef.current) {
+          applyState(parsed.state, ts);
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 30);
+
+    // Method 4: storage events (cross-tab)
     function handleStorage(e: StorageEvent) {
       if (e.key === STATE_KEY && e.newValue) {
         try {
-          const parsed = JSON.parse(e.newValue);
-          const s = parsed && "state" in parsed ? parsed.state : parsed;
-          if (s) applyState(s as ScoreboardState);
+          const parsed = JSON.parse(e.newValue) as {
+            state: ScoreboardState;
+            ts: number;
+          };
+          const ts: number = parsed?.ts ?? 0;
+          if (ts > lastTsRef.current) {
+            applyState(parsed.state, ts);
+          }
         } catch {
-          // ignore
+          /* ignore */
         }
       }
     }
     window.addEventListener("storage", handleStorage);
 
-    // Method 3: Polling every 50ms — catches any missed updates
-    const poller = setInterval(() => {
-      try {
-        const raw = localStorage.getItem(STATE_KEY);
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        const ts: number = parsed?.ts ?? 0;
-        if (ts > lastTsRef.current) {
-          lastTsRef.current = ts;
-          const s = parsed && "state" in parsed ? parsed.state : parsed;
-          if (s) applyState(s as ScoreboardState);
-        }
-      } catch {
-        // ignore
-      }
-    }, 50);
-
     return () => {
+      window.removeEventListener("message", handleMessage);
       channel?.close();
-      window.removeEventListener("storage", handleStorage);
       clearInterval(poller);
+      window.removeEventListener("storage", handleStorage);
     };
-  }, []); // empty — runs once, never recreated
+  }, [applyState]);
 
   const leftSide = state.mirrorExternal ? state.aka : state.ao;
   const rightSide = state.mirrorExternal ? state.ao : state.aka;

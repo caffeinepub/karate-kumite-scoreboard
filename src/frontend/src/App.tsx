@@ -9,7 +9,7 @@ import { useGetDefaultSettings, useSaveMatchLocal } from "./hooks/useQueries";
 import { useTimer } from "./hooks/useTimer";
 import ExternalDisplay from "./pages/ExternalDisplay";
 import { buildRecordMatch } from "./utils/matchRecordMapper";
-import { broadcastState } from "./utils/stateSync";
+import { broadcastState, setExternalWindow } from "./utils/stateSync";
 
 const DEFAULT_WARNINGS = (): boolean[] => [false, false, false, false, false];
 
@@ -261,9 +261,23 @@ function MainScoreboard() {
     doSaveMatch,
   ]);
 
+  // Keep a ref to the latest state so we can re-broadcast on demand
+  const latestStateRef = useRef({
+    ao,
+    aka,
+    timerDisplay: timer.timerDisplay,
+    timerMs: timer.timeMs,
+    isRunning: timer.isRunning,
+    tatamiNo,
+    winner,
+    mirrorExternal,
+    category,
+    darkMode,
+  });
+
   // Broadcast state to external window
   useEffect(() => {
-    broadcastState({
+    const currentState = {
       ao,
       aka,
       timerDisplay: timer.timerDisplay,
@@ -274,7 +288,9 @@ function MainScoreboard() {
       mirrorExternal,
       category,
       darkMode,
-    });
+    };
+    latestStateRef.current = currentState;
+    broadcastState(currentState);
   }, [
     ao,
     aka,
@@ -287,6 +303,20 @@ function MainScoreboard() {
     category,
     darkMode,
   ]);
+
+  // Listen for the external window signaling it's ready (postMessage from ExternalDisplay)
+  useEffect(() => {
+    function handleMessage(e: MessageEvent) {
+      if (e.data?.type === "KUMITE_READY_V8") {
+        // External window is loaded and ready — send current state
+        setTimeout(() => broadcastState(latestStateRef.current), 50);
+        setTimeout(() => broadcastState(latestStateRef.current), 200);
+        setTimeout(() => broadcastState(latestStateRef.current), 500);
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   // Determine the winner for a match being reset (tie-break logic)
   const resolveWinnerForSave = useCallback((): {
@@ -334,33 +364,6 @@ function MainScoreboard() {
     timer.resetWhistleFlags();
   }, [resolveWinnerForSave, doSaveMatch, timer]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+R → reset match
-      if (e.ctrlKey && e.key === "r") {
-        e.preventDefault();
-        handleResetMatch();
-        return;
-      }
-      // S / s (no modifier) → start/stop timer
-      if (
-        (e.key === "s" || e.key === "S") &&
-        !e.ctrlKey &&
-        !e.metaKey &&
-        !e.altKey
-      ) {
-        const target = e.target as HTMLElement;
-        // Don't intercept if typing in an input
-        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
-        e.preventDefault();
-        timer.toggle();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [timer, handleResetMatch]);
-
   const _handleSetMatchTime = useCallback(() => {
     const ms = (matchTimeMinutes * 60 + matchTimeSeconds) * 1000;
     timer.setDuration(ms);
@@ -388,7 +391,22 @@ function MainScoreboard() {
     // Remove any trailing slash before appending hash
     const clean = base.endsWith("/") ? base.slice(0, -1) : base;
     const url = `${clean}#/external`;
-    window.open(url, "kumite_external_sb", "width=1280,height=720");
+    const popup = window.open(
+      url,
+      "kumite_external_sb",
+      "width=1280,height=720",
+    );
+    if (popup) {
+      setExternalWindow(popup);
+      // Once popup loads, send current state immediately
+      popup.addEventListener("load", () => {
+        broadcastState(latestStateRef.current);
+      });
+      // Also send after short delays in case load already fired
+      setTimeout(() => broadcastState(latestStateRef.current), 200);
+      setTimeout(() => broadcastState(latestStateRef.current), 600);
+      setTimeout(() => broadcastState(latestStateRef.current), 1200);
+    }
   }, []);
 
   // Player state updaters
@@ -547,6 +565,152 @@ function MainScoreboard() {
     },
     [updateAka, timer.timeMs],
   );
+
+  // Hold-R reset: track keydown start time
+  const rHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const inInput =
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+
+      // Ctrl+R → reset match
+      if (e.ctrlKey && e.key === "r") {
+        e.preventDefault();
+        handleResetMatch();
+        return;
+      }
+
+      // S / s (no modifier) → start/stop timer
+      if (
+        (e.key === "s" || e.key === "S") &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !e.shiftKey
+      ) {
+        if (inInput) return;
+        e.preventDefault();
+        timer.toggle();
+        return;
+      }
+
+      // Hold R for 3 seconds → reset match
+      if (
+        (e.key === "r" || e.key === "R") &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.shiftKey &&
+        !e.repeat
+      ) {
+        if (inInput) return;
+        if (rHoldTimerRef.current) return; // already holding
+        rHoldTimerRef.current = setTimeout(() => {
+          rHoldTimerRef.current = null;
+          handleResetMatch();
+        }, 3000);
+        return;
+      }
+
+      // Alt+I → Ao Ippon
+      if (e.altKey && (e.key === "i" || e.key === "I")) {
+        e.preventDefault();
+        handleAoScore(3);
+        return;
+      }
+      // Alt+W → Ao Waza-ari
+      if (e.altKey && (e.key === "w" || e.key === "W")) {
+        e.preventDefault();
+        handleAoScore(2);
+        return;
+      }
+      // Alt+Y → Ao Yuko
+      if (e.altKey && (e.key === "y" || e.key === "Y")) {
+        e.preventDefault();
+        handleAoScore(1);
+        return;
+      }
+      // Alt+S → Ao Senshu
+      if (e.altKey && (e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+        handleAoToggleSenshu();
+        return;
+      }
+
+      // Shift+I → Aka Ippon (works even when input is focused)
+      if (
+        e.shiftKey &&
+        !e.altKey &&
+        !e.ctrlKey &&
+        (e.key === "I" || e.key === "i")
+      ) {
+        e.preventDefault();
+        handleAkaScore(3);
+        return;
+      }
+      // Shift+W → Aka Waza-ari (works even when input is focused)
+      if (
+        e.shiftKey &&
+        !e.altKey &&
+        !e.ctrlKey &&
+        (e.key === "W" || e.key === "w")
+      ) {
+        e.preventDefault();
+        handleAkaScore(2);
+        return;
+      }
+      // Shift+Y → Aka Yuko (works even when input is focused)
+      if (
+        e.shiftKey &&
+        !e.altKey &&
+        !e.ctrlKey &&
+        (e.key === "Y" || e.key === "y")
+      ) {
+        e.preventDefault();
+        handleAkaScore(1);
+        return;
+      }
+      // Shift+S → Aka Senshu (works even when input is focused)
+      if (
+        e.shiftKey &&
+        !e.altKey &&
+        !e.ctrlKey &&
+        (e.key === "S" || e.key === "s")
+      ) {
+        e.preventDefault();
+        handleAkaToggleSenshu();
+        return;
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Cancel hold-R if key released before 3s
+      if ((e.key === "r" || e.key === "R") && rHoldTimerRef.current) {
+        clearTimeout(rHoldTimerRef.current);
+        rHoldTimerRef.current = null;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      if (rHoldTimerRef.current) {
+        clearTimeout(rHoldTimerRef.current);
+        rHoldTimerRef.current = null;
+      }
+    };
+  }, [
+    timer,
+    handleResetMatch,
+    handleAoScore,
+    handleAkaScore,
+    handleAoToggleSenshu,
+    handleAkaToggleSenshu,
+  ]);
 
   // Determine panel order based on mirror
   const leftPanel = mirrorInternal ? (

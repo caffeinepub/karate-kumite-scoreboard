@@ -27,45 +27,57 @@ export interface ScoreboardState {
   darkMode: boolean;
 }
 
-// Use a simple, stable key/channel name — no version suffix to avoid stale conflicts
-export const STATE_KEY = "kumite_sb_state";
-const CHANNEL_NAME = "kumite_sb_channel";
+// v8 — fresh keys
+export const STATE_KEY = "kumite_sb_state_v8";
+export const CHANNEL_NAME = "kumite_sb_ch_v8";
+export const READY_KEY = "kumite_sb_ready_v8";
+export const POSTMSG_TYPE = "KUMITE_STATE_V8";
 
-// Persistent sender channel — created once per page load
-let _senderChannel: BroadcastChannel | null = null;
+// Track the popup window reference so we can postMessage directly
+let _externalWindow: Window | null = null;
 
-function ensureSenderChannel(): BroadcastChannel | null {
-  if (typeof BroadcastChannel === "undefined") return null;
-  if (!_senderChannel) {
-    try {
-      _senderChannel = new BroadcastChannel(CHANNEL_NAME);
-    } catch {
-      return null;
-    }
-  }
-  return _senderChannel;
+export function setExternalWindow(win: Window | null): void {
+  _externalWindow = win;
 }
 
 export function broadcastState(state: ScoreboardState): void {
   const ts = Date.now();
+  const payload = JSON.stringify({ state, ts });
+
+  // 1. Write to localStorage — reliable polling fallback
   try {
-    // Write to localStorage — triggers storage events in other windows
-    localStorage.setItem(STATE_KEY, JSON.stringify({ state, ts }));
+    localStorage.setItem(STATE_KEY, payload);
   } catch {
     // ignore
   }
+
+  // 2. Direct postMessage to the popup window (most reliable cross-window method)
+  if (_externalWindow && !_externalWindow.closed) {
+    try {
+      _externalWindow.postMessage(
+        { type: POSTMSG_TYPE, state, ts },
+        window.location.origin,
+      );
+    } catch {
+      // ignore
+    }
+  }
+
+  // 3. BroadcastChannel as additional fallback
   try {
-    // Send via BroadcastChannel — instant same-origin cross-window delivery
-    const ch = ensureSenderChannel();
-    if (ch) {
+    if (typeof BroadcastChannel !== "undefined") {
+      const ch = new BroadcastChannel(CHANNEL_NAME);
       ch.postMessage({ type: "STATE_UPDATE", state, ts });
+      // Close after a short delay to ensure delivery
+      setTimeout(() => {
+        try {
+          ch.close();
+        } catch {
+          // ignore
+        }
+      }, 500);
     }
   } catch {
-    // If channel died, recreate it next time
-    _senderChannel = null;
+    // ignore
   }
-}
-
-export function getChannelName(): string {
-  return CHANNEL_NAME;
 }
