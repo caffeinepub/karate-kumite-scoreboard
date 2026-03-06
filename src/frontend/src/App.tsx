@@ -3,6 +3,7 @@ import CenterPanel from "./components/CenterPanel";
 import ControlBar from "./components/ControlBar";
 import FileMenu from "./components/FileMenu";
 import HistoryModal from "./components/HistoryModal";
+import PWAInstallBanner from "./components/PWAInstallBanner";
 import PlayerPanel, { type PlayerPanelState } from "./components/PlayerPanel";
 import WinnerPopup from "./components/WinnerPopup";
 import { useGetDefaultSettings, useSaveMatchLocal } from "./hooks/useQueries";
@@ -861,8 +862,12 @@ function MainScoreboard() {
 
   return (
     <div
-      style={{ width: "100vw", height: "100vh" }}
-      className={`flex flex-col overflow-hidden ${darkMode ? "bg-black" : "bg-white"}`}
+      style={{
+        width: "100vw",
+        height: "100vh",
+        background: darkMode ? "#000" : "#f5f5f5",
+      }}
+      className="flex flex-col overflow-hidden"
     >
       {/* Control Bar */}
       <ControlBar
@@ -977,6 +982,9 @@ function MainScoreboard() {
         onClose={() => setShowFileMenu(false)}
         onSettingsApplied={handleFileSettingsApplied}
       />
+
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
     </div>
   );
 }
