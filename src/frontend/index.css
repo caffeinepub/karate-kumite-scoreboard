@@ -1,13 +1,2 @@
-/* Root-level index.css — intentionally minimal.
-   All app styles are in src/index.css which main.tsx imports directly.
-   This file must NOT define --background or bg-background to avoid
-   overriding the scoreboard's black theme. */
-
-html, body, #root {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    background: #000 !important;
-    overflow: hidden;
-}
+/* Root index.css - minimal, src/index.css is the main stylesheet */
+/* This file is kept for Vite compatibility but src/index.css is imported directly in main.tsx */

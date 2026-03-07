@@ -22,22 +22,22 @@ export default function CenterPanel({
   onResetMatch,
   onAdjustTime,
 }: CenterPanelProps) {
-  const labelColor = darkMode ? "#fff" : "#111";
+  const bgClass = darkMode ? "bg-black" : "bg-gray-200";
+  const labelClass = darkMode ? "text-white" : "text-gray-900";
 
   return (
     <div
-      className="flex flex-col items-center w-full h-full px-3 py-3 gap-2"
-      style={{ background: darkMode ? "#000" : "#e5e7eb" }}
+      className={`flex flex-col items-center ${bgClass} w-full h-full px-3 py-3 gap-2`}
     >
       {/* Start/Stop Button */}
       <button
         type="button"
         onClick={onToggleTimer}
-        className="w-full py-3 font-bold text-xl rounded transition-all duration-150"
-        style={{
-          background: isRunning ? "#dc2626" : "#22c55e",
-          color: isRunning ? "#fff" : "#000",
-        }}
+        className={`w-full py-3 font-bold text-xl rounded transition-all duration-150 ${
+          isRunning
+            ? "bg-red-600 hover:bg-red-700 text-white"
+            : "bg-timer-green hover:bg-green-500 text-black"
+        }`}
       >
         {isRunning ? "Stop" : "Start"}
       </button>
@@ -47,15 +47,11 @@ export default function CenterPanel({
         <button
           type="button"
           onClick={() => onAdjustTime(1000)}
-          className="p-1 hover:text-timer-green transition-colors"
-          style={{ color: labelColor }}
+          className={`p-1 hover:text-timer-green transition-colors ${labelClass}`}
         >
           <ChevronUp size={14} />
         </button>
-        <div
-          className="font-scoreboard text-4xl font-black tracking-wider"
-          style={{ color: "#4ade80" }}
-        >
+        <div className="text-timer-green font-scoreboard text-4xl font-black tracking-wider">
           {timerDisplay}
         </div>
         <button

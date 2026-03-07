@@ -40,10 +40,7 @@ export default function ControlBar({
   onToggleDarkMode,
 }: ControlBarProps) {
   return (
-    <div
-      className="border-b border-gray-700 px-3 py-2"
-      style={{ background: "#1a1a1a" }}
-    >
+    <div className="bg-control-bar border-b border-gray-700 px-3 py-2">
       {/* Top row: History | Controls | External SB */}
       <div className="flex items-center justify-between gap-2 mb-1">
         <button

@@ -862,12 +862,8 @@ function MainScoreboard() {
 
   return (
     <div
-      style={{
-        width: "100vw",
-        height: "100vh",
-        background: darkMode ? "#000" : "#f5f5f5",
-      }}
-      className="flex flex-col overflow-hidden"
+      style={{ width: "100vw", height: "100vh" }}
+      className={`flex flex-col overflow-hidden ${darkMode ? "bg-black" : "bg-white"}`}
     >
       {/* Control Bar */}
       <ControlBar

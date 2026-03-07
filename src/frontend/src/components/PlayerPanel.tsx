@@ -1,4 +1,4 @@
-import type React from "react";
+import React from "react";
 
 export interface PlayerPanelState {
   name: string;
@@ -24,14 +24,9 @@ interface PlayerPanelProps {
 
 const WARNING_LABELS = ["1C", "2C", "3C", "HC", "H"];
 
-const AO_BG = "#1a3a8f"; // rich blue
-const AKA_BG = "#8f1a1a"; // rich red
-const GLASS_BG = "rgba(255,255,255,0.12)";
-const GLASS_BORDER = "rgba(255,255,255,0.28)";
-const GLASS_HOVER_BG = "rgba(255,255,255,0.22)";
-const GOLDEN_BG = "#c8a000";
-const GOLDEN_BORDER = "#c8a000";
-const GOLDEN_SHADOW = "0 0 12px rgba(200,160,0,0.6)";
+// Glass button base — shared for score, -1, senshu (inactive)
+const glassBtn =
+  "bg-white/10 backdrop-blur-sm border border-white/25 text-white hover:bg-white/20 active:scale-95 transition-all duration-100";
 
 export default function PlayerPanel({
   side,
@@ -45,21 +40,14 @@ export default function PlayerPanel({
 }: PlayerPanelProps) {
   const isAo = side === "ao";
   const title = isAo ? "Ao" : "Aka";
-  const panelBg = isAo ? AO_BG : AKA_BG;
 
   const senshuDisabled = otherHasSenshu && !state.senshu;
 
-  const glassStyle: React.CSSProperties = {
-    background: GLASS_BG,
-    border: `1px solid ${GLASS_BORDER}`,
-    color: "#fff",
-    cursor: "pointer",
-  };
-
   return (
     <div
-      className="flex flex-col items-center w-full h-full px-3 py-3"
-      style={{ background: panelBg }}
+      className={`flex flex-col items-center w-full h-full px-3 py-3 ${
+        isAo ? "bg-ao-blue" : "bg-aka-red"
+      }`}
     >
       {/* Title */}
       <h1 className="text-white font-scoreboard text-6xl font-black tracking-wide drop-shadow-lg mb-1">
@@ -72,11 +60,10 @@ export default function PlayerPanel({
         value={state.name}
         onChange={(e) => onNameChange(e.target.value)}
         placeholder="Player Name"
-        className="w-full max-w-xs text-center font-semibold text-sm py-2 px-3 rounded border-0 outline-none mb-3"
-        style={{
-          background: isAo ? "rgba(0,0,60,0.4)" : "rgba(60,0,0,0.4)",
-          color: "#fff",
-        }}
+        className={
+          "w-full max-w-xs text-center text-white placeholder:text-white/60 font-semibold text-sm py-2 px-3 rounded border-0 outline-none mb-3"
+        }
+        style={{ background: isAo ? "rgba(0,0,80,0.35)" : "rgba(80,0,0,0.35)" }}
       />
 
       {/* Score Buttons */}
@@ -84,33 +71,30 @@ export default function PlayerPanel({
         <button
           type="button"
           onClick={() => onScore(3)}
-          className="w-full py-3 font-bold text-lg rounded shadow-md transition-all duration-100 active:scale-95"
-          style={glassStyle}
+          className={`w-full py-3 font-bold text-lg rounded shadow-md ${glassBtn}`}
         >
           <span className="block">Ippon</span>
-          <span className="block text-xs font-normal" style={{ opacity: 0.7 }}>
+          <span className="block text-xs font-normal opacity-70">
             ×{state.ippon}
           </span>
         </button>
         <button
           type="button"
           onClick={() => onScore(2)}
-          className="w-full py-3 font-bold text-lg rounded shadow-md transition-all duration-100 active:scale-95"
-          style={glassStyle}
+          className={`w-full py-3 font-bold text-lg rounded shadow-md ${glassBtn}`}
         >
           <span className="block">Waza-ari</span>
-          <span className="block text-xs font-normal" style={{ opacity: 0.7 }}>
+          <span className="block text-xs font-normal opacity-70">
             ×{state.wazaari}
           </span>
         </button>
         <button
           type="button"
           onClick={() => onScore(1)}
-          className="w-full py-3 font-bold text-lg rounded shadow-md transition-all duration-100 active:scale-95"
-          style={glassStyle}
+          className={`w-full py-3 font-bold text-lg rounded shadow-md ${glassBtn}`}
         >
           <span className="block">Yuko</span>
-          <span className="block text-xs font-normal" style={{ opacity: 0.7 }}>
+          <span className="block text-xs font-normal opacity-70">
             ×{state.yuko}
           </span>
         </button>
@@ -121,29 +105,13 @@ export default function PlayerPanel({
         type="button"
         onClick={onToggleSenshu}
         disabled={senshuDisabled}
-        className="w-full max-w-xs py-2 font-bold text-base rounded border-2 transition-all duration-150 mb-2"
-        style={
+        className={`w-full max-w-xs py-2 font-bold text-base rounded border-2 transition-all duration-150 mb-2 ${
           senshuDisabled
-            ? {
-                opacity: 0.4,
-                cursor: "not-allowed",
-                background: "rgba(255,255,255,0.05)",
-                color: "rgba(255,255,255,0.4)",
-                border: "2px solid rgba(255,255,255,0.1)",
-              }
+            ? "opacity-50 cursor-not-allowed bg-white/5 text-white/40 border-white/10"
             : state.senshu
-              ? {
-                  background: GOLDEN_BG,
-                  color: "#000",
-                  border: `2px solid ${GOLDEN_BORDER}`,
-                  boxShadow: GOLDEN_SHADOW,
-                  cursor: "pointer",
-                }
-              : {
-                  ...glassStyle,
-                  border: `2px solid ${GLASS_BORDER}`,
-                }
-        }
+              ? "bg-golden text-black border-golden shadow-golden-glow"
+              : `${glassBtn} border-white/25`
+        }`}
       >
         Senshu
       </button>
@@ -152,17 +120,13 @@ export default function PlayerPanel({
       <button
         type="button"
         onClick={onDecrementScore}
-        className="w-full max-w-xs py-2 font-bold text-base rounded transition-all duration-100 mb-3 active:scale-95"
-        style={glassStyle}
+        className={`w-full max-w-xs py-2 font-bold text-base rounded transition-all duration-100 mb-3 ${glassBtn}`}
       >
         -1
       </button>
 
       {/* Total Score */}
-      <div
-        className="font-scoreboard text-8xl font-black leading-none mb-4 drop-shadow-xl"
-        style={{ color: "#fff" }}
-      >
+      <div className="text-white font-scoreboard text-8xl font-black leading-none mb-4 drop-shadow-xl">
         {state.score}
       </div>
 
@@ -173,33 +137,11 @@ export default function PlayerPanel({
             type="button"
             key={label}
             onClick={() => onToggleWarning(idx)}
-            className="w-11 h-11 rounded-full font-bold text-xs transition-all duration-150"
-            style={
+            className={`w-11 h-11 rounded-full border-2 font-bold text-xs transition-all duration-150 ${
               state.warnings[idx]
-                ? {
-                    background: GOLDEN_BG,
-                    color: "#000",
-                    border: `2px solid ${GOLDEN_BORDER}`,
-                    boxShadow: GOLDEN_SHADOW,
-                    cursor: "pointer",
-                  }
-                : {
-                    ...glassStyle,
-                    border: `2px solid ${GLASS_BORDER}`,
-                  }
-            }
-            onMouseEnter={(e) => {
-              if (!state.warnings[idx]) {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  GLASS_HOVER_BG;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!state.warnings[idx]) {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  GLASS_BG;
-              }
-            }}
+                ? "bg-golden text-black border-golden shadow-golden-glow"
+                : `${glassBtn} rounded-full border-white/25`
+            }`}
           >
             {label}
           </button>
