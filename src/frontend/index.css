@@ -1,2 +1,1 @@
-/* Root index.css - minimal, src/index.css is the main stylesheet */
-/* This file is kept for Vite compatibility but src/index.css is imported directly in main.tsx */
+/* intentionally empty — src/index.css is the real stylesheet */
