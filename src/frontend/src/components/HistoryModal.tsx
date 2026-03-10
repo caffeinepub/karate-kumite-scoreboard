@@ -290,21 +290,26 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
             </button>
             <button
               type="button"
-              onClick={() => matches.length > 0 && exportHistoryToPDF(matches)}
-              disabled={matches.length === 0}
+              onClick={() => {
+                if (matches.length === 0) {
+                  alert("No match history to export.");
+                  return;
+                }
+                exportHistoryToPDF(matches);
+              }}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 4,
                 padding: "6px 10px",
-                backgroundColor: matches.length === 0 ? "#1e3a8a" : "#2563eb",
+                backgroundColor: "#2563eb",
                 color: "#fff",
                 fontSize: 13,
                 fontWeight: 600,
                 borderRadius: 6,
                 border: "none",
-                cursor: matches.length === 0 ? "not-allowed" : "pointer",
-                opacity: matches.length === 0 ? 0.5 : 1,
+                cursor: "pointer",
+                opacity: 1,
               }}
             >
               <Download size={14} />

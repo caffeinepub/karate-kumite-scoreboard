@@ -110,6 +110,13 @@ function MainScoreboard() {
 
   const winnerDeclaredRef = useRef(false);
   const matchSavedRef = useRef(false);
+  // Senshu tie-break: when both get +1 simultaneously, pre-declare the senshu holder as winner
+  // so the win detection effect doesn't fire on the intermediate state (one side at winningScore, other not yet)
+  const pendingSenshuWinnerRef = useRef<{
+    side: "Ao" | "Aka";
+    name: string;
+    targetScore: number;
+  } | null>(null);
 
   const _initialTimerMs = _localFileSettings
     ? (_localFileSettings.minutes * 60 + _localFileSettings.seconds) * 1000
@@ -156,7 +163,26 @@ function MainScoreboard() {
       score: number;
     } | null = null;
 
-    if (winByLead) {
+    // Check if a senshu tie-break winner was pre-declared (both players got +1 simultaneously)
+    // Only confirm once both scores have reached the target score
+    if (pendingSenshuWinnerRef.current) {
+      const pending = pendingSenshuWinnerRef.current;
+      const bothReached =
+        ao.score >= pending.targetScore && aka.score >= pending.targetScore;
+      if (bothReached) {
+        // Both scores updated — now safely declare the senshu holder as winner
+        pendingSenshuWinnerRef.current = null;
+        const winnerScore = pending.side === "Ao" ? ao.score : aka.score;
+        detectedWinner = {
+          side: pending.side,
+          name: pending.name,
+          score: winnerScore,
+        };
+      } else {
+        // One side updated but not yet the other — wait for the next render
+        return;
+      }
+    } else if (winByLead) {
       const diff = ao.score - aka.score;
       if (diff >= leadAmount && ao.score > 0) {
         detectedWinner = { side: "Ao", name: ao.name, score: ao.score };
@@ -371,9 +397,11 @@ function MainScoreboard() {
   }, [ao, aka]);
 
   const handleResetMatch = useCallback(() => {
-    // Always save on reset — captures the final state of this match
-    const resolved = resolveWinnerForSave();
-    doSaveMatch(resolved.name, resolved.side);
+    // Only save if not already saved (avoids double-saving when auto-win fired mid-match)
+    if (!matchSavedRef.current) {
+      const resolved = resolveWinnerForSave();
+      doSaveMatch(resolved.name, resolved.side);
+    }
 
     setAo(DEFAULT_PLAYER());
     setAka(DEFAULT_PLAYER());
@@ -381,6 +409,7 @@ function MainScoreboard() {
     setShowWinnerPopup(false);
     winnerDeclaredRef.current = false;
     matchSavedRef.current = false;
+    pendingSenshuWinnerRef.current = null;
     timer.reset();
     timer.resetWhistleFlags();
   }, [resolveWinnerForSave, doSaveMatch, timer]);
@@ -449,6 +478,8 @@ function MainScoreboard() {
   // When both players are TIED and the next score would put the scorer at winningScore
   // (or already at/above), and the OTHER player has senshu, both get +1 and the senshu holder wins.
   // Also triggers when BOTH are already tied at or above winning score.
+  // IMPORTANT: We pre-declare the senshu winner in a ref BEFORE updating state to avoid
+  // a race condition where the win detection effect fires after only one of the two state updates.
   const handleAoScore = useCallback(
     (points: number) => {
       if (!winByLead && winningScore > 0) {
@@ -462,6 +493,12 @@ function MainScoreboard() {
           aka.senshu &&
           (aoWouldReachWinning || alreadyTiedAtWinning)
         ) {
+          // Pre-declare senshu winner (Aka) BEFORE state updates to prevent race condition
+          pendingSenshuWinnerRef.current = {
+            side: "Aka",
+            name: aka.name || "Aka",
+            targetScore: ao.score + 1,
+          };
           // Senshu tie-break: both get +1, Aka (senshu) wins
           updateAo((prev) => ({
             ...prev,
@@ -480,6 +517,12 @@ function MainScoreboard() {
           !aka.senshu &&
           (aoWouldReachWinning || alreadyTiedAtWinning)
         ) {
+          // Pre-declare senshu winner (Ao) BEFORE state updates to prevent race condition
+          pendingSenshuWinnerRef.current = {
+            side: "Ao",
+            name: ao.name || "Ao",
+            targetScore: ao.score + 1,
+          };
           // Both get +1, Ao (senshu) wins
           updateAo((prev) => ({
             ...prev,
@@ -505,8 +548,10 @@ function MainScoreboard() {
       updateAka,
       ao.score,
       ao.senshu,
+      ao.name,
       aka.score,
       aka.senshu,
+      aka.name,
       winByLead,
       winningScore,
     ],
@@ -524,6 +569,12 @@ function MainScoreboard() {
           ao.senshu &&
           (akaWouldReachWinning || alreadyTiedAtWinning)
         ) {
+          // Pre-declare senshu winner (Ao) BEFORE state updates to prevent race condition
+          pendingSenshuWinnerRef.current = {
+            side: "Ao",
+            name: ao.name || "Ao",
+            targetScore: aka.score + 1,
+          };
           // Senshu tie-break: both get +1, Ao (senshu) wins
           updateAka((prev) => ({
             ...prev,
@@ -541,6 +592,12 @@ function MainScoreboard() {
           !ao.senshu &&
           (akaWouldReachWinning || alreadyTiedAtWinning)
         ) {
+          // Pre-declare senshu winner (Aka) BEFORE state updates to prevent race condition
+          pendingSenshuWinnerRef.current = {
+            side: "Aka",
+            name: aka.name || "Aka",
+            targetScore: aka.score + 1,
+          };
           // Both get +1, Aka (senshu) wins
           updateAka((prev) => ({
             ...prev,
@@ -566,8 +623,10 @@ function MainScoreboard() {
       updateAo,
       aka.score,
       aka.senshu,
+      aka.name,
       ao.score,
       ao.senshu,
+      ao.name,
       winByLead,
       winningScore,
     ],

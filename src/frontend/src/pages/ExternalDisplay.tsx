@@ -67,8 +67,6 @@ export default function ExternalDisplay() {
   }, []);
 
   useEffect(() => {
-    // Signal to the main window that this external display is ready
-    // Method A: postMessage to opener (works when opened as popup)
     if (window.opener && !window.opener.closed) {
       try {
         window.opener.postMessage(
@@ -80,9 +78,7 @@ export default function ExternalDisplay() {
       }
     }
 
-    // Method 1: Listen for direct postMessage from main window (most reliable)
     function handleMessage(e: MessageEvent) {
-      // Accept messages from the same origin only
       if (e.origin !== window.location.origin) return;
       if (e.data?.type === POSTMSG_TYPE && e.data.state) {
         applyState(e.data.state as ScoreboardState, e.data.ts ?? Date.now());
@@ -90,7 +86,6 @@ export default function ExternalDisplay() {
     }
     window.addEventListener("message", handleMessage);
 
-    // Method 2: BroadcastChannel
     let channel: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== "undefined") {
       try {
@@ -108,7 +103,6 @@ export default function ExternalDisplay() {
       }
     }
 
-    // Method 3: localStorage polling — 30ms guaranteed fallback
     const poller = setInterval(() => {
       try {
         const raw = localStorage.getItem(STATE_KEY);
@@ -126,7 +120,6 @@ export default function ExternalDisplay() {
       }
     }, 30);
 
-    // Method 4: storage events (cross-tab)
     function handleStorage(e: StorageEvent) {
       if (e.key === STATE_KEY && e.newValue) {
         try {
@@ -240,26 +233,28 @@ export default function ExternalDisplay() {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 2,
+            gap: 4,
           }}
         >
+          {/* AO/AKA Label — bigger */}
           <div
             style={{
               color: "#FFFFFF",
-              fontSize: 40,
+              fontSize: 64,
               fontWeight: 900,
-              letterSpacing: 6,
+              letterSpacing: 8,
               opacity: 0.95,
               lineHeight: 1,
             }}
           >
             {leftLabel}
           </div>
+          {/* Player Name — bigger */}
           {leftSide.name && (
             <div
               style={{
                 color: "#FFFFFF",
-                fontSize: 22,
+                fontSize: 32,
                 fontWeight: 700,
                 letterSpacing: 1,
                 lineHeight: 1.1,
@@ -268,10 +263,11 @@ export default function ExternalDisplay() {
               {leftSide.name}
             </div>
           )}
+          {/* Score — bigger */}
           <div
             style={{
               color: "#FFFFFF",
-              fontSize: 140,
+              fontSize: 160,
               fontWeight: 900,
               lineHeight: 0.85,
               letterSpacing: -6,
@@ -279,19 +275,21 @@ export default function ExternalDisplay() {
           >
             {leftSide.score}
           </div>
+          {/* SENSHU — bigger */}
           {leftSide.senshu && (
             <div
               style={{
-                marginTop: 4,
+                marginTop: 8,
                 display: "inline-block",
-                padding: "4px 16px",
+                padding: "10px 32px",
                 backgroundColor: "#F59E0B",
                 color: "#000",
-                fontWeight: 800,
-                fontSize: 20,
+                fontWeight: 900,
+                fontSize: 30,
                 borderRadius: 999,
-                letterSpacing: 2,
-                boxShadow: "0 0 16px rgba(245,158,11,0.85)",
+                letterSpacing: 3,
+                boxShadow:
+                  "0 0 24px rgba(245,158,11,0.9), 0 0 48px rgba(245,158,11,0.5)",
               }}
             >
               SENSHU
@@ -342,26 +340,28 @@ export default function ExternalDisplay() {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 2,
+            gap: 4,
           }}
         >
+          {/* AO/AKA Label — bigger */}
           <div
             style={{
               color: "#FFFFFF",
-              fontSize: 40,
+              fontSize: 64,
               fontWeight: 900,
-              letterSpacing: 6,
+              letterSpacing: 8,
               opacity: 0.95,
               lineHeight: 1,
             }}
           >
             {rightLabel}
           </div>
+          {/* Player Name — bigger */}
           {rightSide.name && (
             <div
               style={{
                 color: "#FFFFFF",
-                fontSize: 22,
+                fontSize: 32,
                 fontWeight: 700,
                 letterSpacing: 1,
                 lineHeight: 1.1,
@@ -370,10 +370,11 @@ export default function ExternalDisplay() {
               {rightSide.name}
             </div>
           )}
+          {/* Score — bigger */}
           <div
             style={{
               color: "#FFFFFF",
-              fontSize: 140,
+              fontSize: 160,
               fontWeight: 900,
               lineHeight: 0.85,
               letterSpacing: -6,
@@ -381,19 +382,21 @@ export default function ExternalDisplay() {
           >
             {rightSide.score}
           </div>
+          {/* SENSHU — bigger */}
           {rightSide.senshu && (
             <div
               style={{
-                marginTop: 4,
+                marginTop: 8,
                 display: "inline-block",
-                padding: "4px 16px",
+                padding: "10px 32px",
                 backgroundColor: "#F59E0B",
                 color: "#000",
-                fontWeight: 800,
-                fontSize: 20,
+                fontWeight: 900,
+                fontSize: 30,
                 borderRadius: 999,
-                letterSpacing: 2,
-                boxShadow: "0 0 16px rgba(245,158,11,0.85)",
+                letterSpacing: 3,
+                boxShadow:
+                  "0 0 24px rgba(245,158,11,0.9), 0 0 48px rgba(245,158,11,0.5)",
               }}
             >
               SENSHU
@@ -402,7 +405,7 @@ export default function ExternalDisplay() {
         </div>
       </div>
 
-      {/* Warnings Row */}
+      {/* Warnings Row — bigger circles */}
       <div
         style={{
           display: "flex",
@@ -415,7 +418,7 @@ export default function ExternalDisplay() {
         }}
       >
         {/* Left Warnings */}
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 14 }}>
           {WARNING_LABELS.map((label, idx) => {
             const active = leftSide.warnings[idx];
             const circleColor = state.mirrorExternal ? "#FCA5A5" : "#93C5FD";
@@ -423,18 +426,18 @@ export default function ExternalDisplay() {
               <div
                 key={label}
                 style={{
-                  width: 50,
-                  height: 50,
+                  width: 72,
+                  height: 72,
                   borderRadius: "50%",
-                  border: `2px solid ${active ? "#F59E0B" : circleColor}`,
+                  border: `3px solid ${active ? "#F59E0B" : circleColor}`,
                   backgroundColor: active ? "#F59E0B" : "transparent",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontWeight: 700,
-                  fontSize: 13,
+                  fontWeight: 800,
+                  fontSize: 20,
                   color: active ? "#000" : circleColor,
-                  boxShadow: active ? "0 0 10px rgba(245,158,11,0.6)" : "none",
+                  boxShadow: active ? "0 0 16px rgba(245,158,11,0.7)" : "none",
                 }}
               >
                 {label}
@@ -444,7 +447,7 @@ export default function ExternalDisplay() {
         </div>
 
         {/* Right Warnings */}
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 14 }}>
           {WARNING_LABELS.map((label, idx) => {
             const active = rightSide.warnings[idx];
             const circleColor = state.mirrorExternal ? "#93C5FD" : "#FCA5A5";
@@ -452,18 +455,18 @@ export default function ExternalDisplay() {
               <div
                 key={label}
                 style={{
-                  width: 50,
-                  height: 50,
+                  width: 72,
+                  height: 72,
                   borderRadius: "50%",
-                  border: `2px solid ${active ? "#F59E0B" : circleColor}`,
+                  border: `3px solid ${active ? "#F59E0B" : circleColor}`,
                   backgroundColor: active ? "#F59E0B" : "transparent",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontWeight: 700,
-                  fontSize: 13,
+                  fontWeight: 800,
+                  fontSize: 20,
                   color: active ? "#000" : circleColor,
-                  boxShadow: active ? "0 0 10px rgba(245,158,11,0.6)" : "none",
+                  boxShadow: active ? "0 0 16px rgba(245,158,11,0.7)" : "none",
                 }}
               >
                 {label}
