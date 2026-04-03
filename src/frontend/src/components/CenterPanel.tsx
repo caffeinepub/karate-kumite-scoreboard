@@ -24,8 +24,8 @@ export default function CenterPanel({
   onResetMatch,
   onAdjustTime,
 }: CenterPanelProps) {
-  const bgClass = darkMode ? "bg-black" : "bg-gray-200";
-  const labelClass = darkMode ? "text-white" : "text-gray-900";
+  const bgColor = darkMode ? "#000000" : "#E5E7EB";
+  const labelColor = darkMode ? "#FFFFFF" : "#111827";
 
   // Timer color: yellow when running, red when running & last 15s, white when stopped
   const timerColor = !isRunning
@@ -42,17 +42,18 @@ export default function CenterPanel({
 
   return (
     <div
-      className={`flex flex-col items-center ${bgClass} w-full h-full px-3 py-3 gap-2`}
+      className="flex flex-col items-center w-full h-full px-3 py-3 gap-2"
+      style={{ backgroundColor: bgColor }}
     >
       {/* Start/Stop Button */}
       <button
         type="button"
         onClick={onToggleTimer}
-        className={`w-full py-3 font-bold text-xl rounded transition-all duration-150 ${
-          isRunning
-            ? "bg-red-600 hover:bg-red-700 text-white"
-            : "bg-timer-green hover:bg-green-500 text-black"
-        }`}
+        className="w-full py-3 font-bold text-xl rounded transition-all duration-150"
+        style={{
+          backgroundColor: isRunning ? "#DC2626" : "#16A34A",
+          color: "#FFFFFF",
+        }}
       >
         {isRunning ? "Stop" : "Start"}
       </button>
@@ -62,7 +63,8 @@ export default function CenterPanel({
         <button
           type="button"
           onClick={() => onAdjustTime(1000)}
-          className={`p-1 hover:text-timer-green transition-colors ${labelClass}`}
+          className="p-1 transition-colors"
+          style={{ color: labelColor }}
         >
           <ChevronUp size={14} />
         </button>
@@ -79,7 +81,8 @@ export default function CenterPanel({
         <button
           type="button"
           onClick={() => onAdjustTime(-1000)}
-          className="p-1 text-red-400 hover:text-red-300 transition-colors"
+          className="p-1 transition-colors"
+          style={{ color: "#F87171" }}
         >
           <ChevronDown size={14} />
         </button>
@@ -89,7 +92,8 @@ export default function CenterPanel({
       <button
         type="button"
         onClick={onResetTime}
-        className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded transition-all"
+        className="w-full py-2 font-bold text-sm rounded transition-all"
+        style={{ backgroundColor: "#DC2626", color: "#FFFFFF" }}
       >
         Reset time
       </button>
@@ -98,7 +102,8 @@ export default function CenterPanel({
       <button
         type="button"
         onClick={onSet60Seconds}
-        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded transition-all"
+        className="w-full py-2 font-bold text-sm rounded transition-all"
+        style={{ backgroundColor: "#2563EB", color: "#FFFFFF" }}
       >
         60 Seconds
       </button>
@@ -107,7 +112,8 @@ export default function CenterPanel({
       <button
         type="button"
         onClick={onResetMatch}
-        className="w-full py-2 bg-red-700 hover:bg-red-800 text-white font-bold text-sm rounded transition-all"
+        className="w-full py-2 font-bold text-sm rounded transition-all"
+        style={{ backgroundColor: "#991B1B", color: "#FFFFFF" }}
       >
         Reset match
       </button>

@@ -24,6 +24,13 @@ interface PlayerPanelProps {
 
 const WARNING_LABELS = ["1C", "2C", "3C", "HC", "H"];
 
+// AO blue = #1D4ED8, AKA red = #B91C1C
+const AO_BG = "#1D4ED8";
+const AKA_BG = "#B91C1C";
+const GOLDEN_BG = "#F59E0B";
+const GOLDEN_GLOW =
+  "0 0 12px rgba(245,158,11,0.7), 0 0 24px rgba(245,158,11,0.4)";
+
 // Glass button base — shared for score, -1, senshu (inactive)
 const glassBtn =
   "bg-white/10 backdrop-blur-sm border border-white/25 text-white hover:bg-white/20 active:scale-95 transition-all duration-100";
@@ -45,9 +52,8 @@ export default function PlayerPanel({
 
   return (
     <div
-      className={`flex flex-col items-center w-full h-full px-3 py-3 ${
-        isAo ? "bg-ao-blue" : "bg-aka-red"
-      }`}
+      className="flex flex-col items-center w-full h-full px-3 py-3"
+      style={{ backgroundColor: isAo ? AO_BG : AKA_BG }}
     >
       {/* Title */}
       <h1 className="text-white font-scoreboard text-6xl font-black tracking-wide drop-shadow-lg mb-1">
@@ -60,9 +66,7 @@ export default function PlayerPanel({
         value={state.name}
         onChange={(e) => onNameChange(e.target.value)}
         placeholder="Player Name"
-        className={
-          "w-full max-w-xs text-center text-white placeholder:text-white/60 font-semibold text-sm py-2 px-3 rounded border-0 outline-none mb-3"
-        }
+        className="w-full max-w-xs text-center text-white placeholder:text-white/60 font-semibold text-sm py-2 px-3 rounded border-0 outline-none mb-3"
         style={{ background: isAo ? "rgba(0,0,80,0.35)" : "rgba(80,0,0,0.35)" }}
       />
 
@@ -75,7 +79,7 @@ export default function PlayerPanel({
         >
           <span className="block">Ippon</span>
           <span className="block text-xs font-normal opacity-70">
-            ×{state.ippon}
+            \u00d7{state.ippon}
           </span>
         </button>
         <button
@@ -85,7 +89,7 @@ export default function PlayerPanel({
         >
           <span className="block">Waza-ari</span>
           <span className="block text-xs font-normal opacity-70">
-            ×{state.wazaari}
+            \u00d7{state.wazaari}
           </span>
         </button>
         <button
@@ -95,7 +99,7 @@ export default function PlayerPanel({
         >
           <span className="block">Yuko</span>
           <span className="block text-xs font-normal opacity-70">
-            ×{state.yuko}
+            \u00d7{state.yuko}
           </span>
         </button>
       </div>
@@ -108,10 +112,24 @@ export default function PlayerPanel({
         className={`w-full max-w-xs py-2 font-bold text-base rounded border-2 transition-all duration-150 mb-2 ${
           senshuDisabled
             ? "opacity-50 cursor-not-allowed bg-white/5 text-white/40 border-white/10"
-            : state.senshu
-              ? "bg-golden text-black border-golden shadow-golden-glow"
-              : `${glassBtn} border-white/25`
+            : ""
         }`}
+        style={
+          !senshuDisabled && state.senshu
+            ? {
+                backgroundColor: GOLDEN_BG,
+                color: "#000",
+                border: `2px solid ${GOLDEN_BG}`,
+                boxShadow: GOLDEN_GLOW,
+              }
+            : !senshuDisabled
+              ? {
+                  background: "rgba(255,255,255,0.1)",
+                  border: "2px solid rgba(255,255,255,0.25)",
+                  color: "#fff",
+                }
+              : undefined
+        }
       >
         Senshu
       </button>
@@ -137,11 +155,21 @@ export default function PlayerPanel({
             type="button"
             key={label}
             onClick={() => onToggleWarning(idx)}
-            className={`w-11 h-11 rounded-full border-2 font-bold text-xs transition-all duration-150 ${
+            className="w-11 h-11 rounded-full border-2 font-bold text-xs transition-all duration-150"
+            style={
               state.warnings[idx]
-                ? "bg-golden text-black border-golden shadow-golden-glow"
-                : `${glassBtn} rounded-full border-white/25`
-            }`}
+                ? {
+                    backgroundColor: GOLDEN_BG,
+                    color: "#000",
+                    border: `2px solid ${GOLDEN_BG}`,
+                    boxShadow: GOLDEN_GLOW,
+                  }
+                : {
+                    background: "rgba(255,255,255,0.1)",
+                    border: "2px solid rgba(255,255,255,0.25)",
+                    color: "#fff",
+                  }
+            }
           >
             {label}
           </button>

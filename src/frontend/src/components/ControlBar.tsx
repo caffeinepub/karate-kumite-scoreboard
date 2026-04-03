@@ -40,7 +40,10 @@ export default function ControlBar({
   onToggleDarkMode,
 }: ControlBarProps) {
   return (
-    <div className="bg-control-bar border-b border-gray-700 px-3 py-2">
+    <div
+      className="border-b border-gray-700 px-3 py-2"
+      style={{ backgroundColor: "#111111" }}
+    >
       {/* Top row: History | Controls | External SB */}
       <div className="flex items-center justify-between gap-2 mb-1">
         <button
@@ -86,7 +89,8 @@ export default function ControlBar({
                 type="checkbox"
                 checked={winByLead}
                 onChange={(e) => onWinByLeadChange(e.target.checked)}
-                className="accent-golden w-3 h-3"
+                className="w-3 h-3"
+                style={{ accentColor: "#F59E0B" }}
               />
               Win by Lead:
             </label>
@@ -105,7 +109,8 @@ export default function ControlBar({
               type="checkbox"
               checked={mirrorInternal}
               onChange={(e) => onMirrorInternalChange(e.target.checked)}
-              className="accent-golden w-3 h-3"
+              className="w-3 h-3"
+              style={{ accentColor: "#F59E0B" }}
             />
             Mirror Internal
           </label>
@@ -116,7 +121,8 @@ export default function ControlBar({
               type="checkbox"
               checked={mirrorExternal}
               onChange={(e) => onMirrorExternalChange(e.target.checked)}
-              className="accent-golden w-3 h-3"
+              className="w-3 h-3"
+              style={{ accentColor: "#F59E0B" }}
             />
             Mirror External
           </label>
@@ -136,7 +142,7 @@ export default function ControlBar({
             onClick={onOpenFileMenu}
             className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold rounded border border-gray-500"
           >
-            File ▼
+            File &#9660;
           </button>
           <button
             type="button"
