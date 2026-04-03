@@ -160,7 +160,25 @@ export default function ExternalDisplay() {
   const subTextColor = state.darkMode ? "#9CA3AF" : "#6B7280";
   const centerBg = state.darkMode ? "#111827" : "#F3F4F6";
   const centerBorder = state.darkMode ? "#4B5563" : "#D1D5DB";
-  const timerColor = "#22C55E";
+
+  // Timer color: yellow when running, red when running & last 15s, white when stopped
+  const timerColor = !state.isRunning
+    ? "#FFFFFF"
+    : state.timerMs <= 15000
+      ? "#EF4444"
+      : "#FACC15";
+
+  const timerGlow = !state.isRunning
+    ? "none"
+    : state.timerMs <= 15000
+      ? "0 0 30px rgba(239,68,68,0.9), 0 0 60px rgba(239,68,68,0.5), 0 0 100px rgba(239,68,68,0.3)"
+      : "0 0 30px rgba(250,204,21,0.9), 0 0 60px rgba(250,204,21,0.5), 0 0 100px rgba(250,204,21,0.3)";
+
+  const timerPulseStyle = state.isRunning
+    ? state.timerMs <= 15000
+      ? "timerPulseRed 0.8s ease-in-out infinite"
+      : "timerPulseYellow 1s ease-in-out infinite"
+    : "none";
 
   return (
     <div
@@ -236,7 +254,6 @@ export default function ExternalDisplay() {
             gap: 4,
           }}
         >
-          {/* AO/AKA Label — bigger */}
           <div
             style={{
               color: "#FFFFFF",
@@ -249,7 +266,6 @@ export default function ExternalDisplay() {
           >
             {leftLabel}
           </div>
-          {/* Player Name — bigger */}
           {leftSide.name && (
             <div
               style={{
@@ -263,7 +279,6 @@ export default function ExternalDisplay() {
               {leftSide.name}
             </div>
           )}
-          {/* Score — bigger */}
           <div
             style={{
               color: "#FFFFFF",
@@ -275,7 +290,6 @@ export default function ExternalDisplay() {
           >
             {leftSide.score}
           </div>
-          {/* SENSHU — bigger */}
           {leftSide.senshu && (
             <div
               style={{
@@ -343,7 +357,6 @@ export default function ExternalDisplay() {
             gap: 4,
           }}
         >
-          {/* AO/AKA Label — bigger */}
           <div
             style={{
               color: "#FFFFFF",
@@ -356,7 +369,6 @@ export default function ExternalDisplay() {
           >
             {rightLabel}
           </div>
-          {/* Player Name — bigger */}
           {rightSide.name && (
             <div
               style={{
@@ -370,7 +382,6 @@ export default function ExternalDisplay() {
               {rightSide.name}
             </div>
           )}
-          {/* Score — bigger */}
           <div
             style={{
               color: "#FFFFFF",
@@ -382,7 +393,6 @@ export default function ExternalDisplay() {
           >
             {rightSide.score}
           </div>
-          {/* SENSHU — bigger */}
           {rightSide.senshu && (
             <div
               style={{
@@ -405,7 +415,7 @@ export default function ExternalDisplay() {
         </div>
       </div>
 
-      {/* Warnings Row — bigger circles */}
+      {/* Warnings Row */}
       <div
         style={{
           display: "flex",
@@ -490,21 +500,23 @@ export default function ExternalDisplay() {
             fontSize: 160,
             fontWeight: 900,
             letterSpacing: 4,
-            textShadow:
-              "0 0 30px rgba(34,197,94,0.9), 0 0 60px rgba(34,197,94,0.5), 0 0 100px rgba(34,197,94,0.3)",
+            textShadow: timerGlow,
             fontVariantNumeric: "tabular-nums",
             lineHeight: 1,
-            animation: state.isRunning
-              ? "timerPulse 1s ease-in-out infinite"
-              : "none",
+            transition: "color 0.3s, text-shadow 0.3s",
+            animation: timerPulseStyle,
           }}
         >
           {state.timerDisplay}
         </div>
         <style>{`
-          @keyframes timerPulse {
-            0%, 100% { text-shadow: 0 0 30px rgba(34,197,94,0.9), 0 0 60px rgba(34,197,94,0.5), 0 0 100px rgba(34,197,94,0.3); }
-            50% { text-shadow: 0 0 50px rgba(34,197,94,1), 0 0 100px rgba(34,197,94,0.7), 0 0 150px rgba(34,197,94,0.5); }
+          @keyframes timerPulseYellow {
+            0%, 100% { text-shadow: 0 0 30px rgba(250,204,21,0.9), 0 0 60px rgba(250,204,21,0.5), 0 0 100px rgba(250,204,21,0.3); }
+            50% { text-shadow: 0 0 50px rgba(250,204,21,1), 0 0 100px rgba(250,204,21,0.7), 0 0 150px rgba(250,204,21,0.5); }
+          }
+          @keyframes timerPulseRed {
+            0%, 100% { text-shadow: 0 0 30px rgba(239,68,68,0.9), 0 0 60px rgba(239,68,68,0.5), 0 0 100px rgba(239,68,68,0.3); }
+            50% { text-shadow: 0 0 50px rgba(239,68,68,1), 0 0 100px rgba(239,68,68,0.7), 0 0 150px rgba(239,68,68,0.5); }
           }
         `}</style>
       </div>

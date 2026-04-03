@@ -43,7 +43,6 @@ function checkIsExternalRoute() {
 export default function App() {
   const [isExternal, setIsExternal] = React.useState(checkIsExternalRoute);
 
-  // Listen for hash changes in case the route changes dynamically
   useEffect(() => {
     const handler = () => setIsExternal(checkIsExternalRoute());
     window.addEventListener("hashchange", handler);
@@ -68,7 +67,6 @@ function MainScoreboard() {
   const [ao, setAo] = useState<PlayerPanelState>(DEFAULT_PLAYER());
   const [aka, setAka] = useState<PlayerPanelState>(DEFAULT_PLAYER());
 
-  // Load persisted file settings from localStorage immediately
   const _localFileSettings = (() => {
     try {
       const raw = localStorage.getItem("kumite_file_settings_v1");
@@ -110,8 +108,9 @@ function MainScoreboard() {
 
   const winnerDeclaredRef = useRef(false);
   const matchSavedRef = useRef(false);
-  // Senshu tie-break: when both get +1 simultaneously, pre-declare the senshu holder as winner
-  // so the win detection effect doesn't fire on the intermediate state (one side at winningScore, other not yet)
+  const winFromHWarningRef = useRef<"ao" | "aka" | null>(null);
+  const lastWinnerSideRef = useRef<string | null>(null);
+  const userDismissedRef = useRef(false);
   const pendingSenshuWinnerRef = useRef<{
     side: "Ao" | "Aka";
     name: string;
@@ -123,7 +122,6 @@ function MainScoreboard() {
     : (matchTimeMinutes * 60 + matchTimeSeconds) * 1000;
   const timer = useTimer(_initialTimerMs);
 
-  // Apply default settings from backend — only on first successful load
   const timerSetDuration = timer.setDuration;
   useEffect(() => {
     if (defaultSettings) {
@@ -153,24 +151,20 @@ function MainScoreboard() {
     [ao, aka, category, tatamiNo, timer.timerDisplay, saveMatchLocal],
   );
 
-  // Win detection — score-based and H-warning-based
+  // Win detection
   useEffect(() => {
-    if (winnerDeclaredRef.current) return;
-
     let detectedWinner: {
       side: "Ao" | "Aka";
       name: string;
       score: number;
     } | null = null;
+    let fromHWarning: "ao" | "aka" | null = null;
 
-    // Check if a senshu tie-break winner was pre-declared (both players got +1 simultaneously)
-    // Only confirm once both scores have reached the target score
     if (pendingSenshuWinnerRef.current) {
       const pending = pendingSenshuWinnerRef.current;
       const bothReached =
         ao.score >= pending.targetScore && aka.score >= pending.targetScore;
       if (bothReached) {
-        // Both scores updated — now safely declare the senshu holder as winner
         pendingSenshuWinnerRef.current = null;
         const winnerScore = pending.side === "Ao" ? ao.score : aka.score;
         detectedWinner = {
@@ -179,7 +173,6 @@ function MainScoreboard() {
           score: winnerScore,
         };
       } else {
-        // One side updated but not yet the other — wait for the next render
         return;
       }
     } else if (winByLead) {
@@ -191,45 +184,54 @@ function MainScoreboard() {
       }
     } else {
       if (winningScore > 0) {
-        // When both are tied at or above winning score, senshu holder wins
         if (ao.score === aka.score && ao.score >= winningScore) {
           if (ao.senshu && !aka.senshu) {
             detectedWinner = { side: "Ao", name: ao.name, score: ao.score };
           } else if (aka.senshu && !ao.senshu) {
             detectedWinner = { side: "Aka", name: aka.name, score: aka.score };
           }
-          // If both have senshu or neither → no winner yet, need more points
         } else if (ao.score >= winningScore && ao.score > aka.score) {
-          // Ao clearly leads at winning score
           detectedWinner = { side: "Ao", name: ao.name, score: ao.score };
         } else if (aka.score >= winningScore && aka.score > ao.score) {
-          // Aka clearly leads at winning score
           detectedWinner = { side: "Aka", name: aka.name, score: aka.score };
         }
       }
     }
 
-    // H warning (index 4) = opponent wins
     if (!detectedWinner) {
       if (ao.warnings[4]) {
         detectedWinner = { side: "Aka", name: aka.name, score: aka.score };
+        fromHWarning = "ao";
       } else if (aka.warnings[4]) {
         detectedWinner = { side: "Ao", name: ao.name, score: ao.score };
+        fromHWarning = "aka";
       }
     }
 
     if (detectedWinner) {
       winnerDeclaredRef.current = true;
+      winFromHWarningRef.current = fromHWarning;
       setWinner(detectedWinner);
-      setShowWinnerPopup(true);
-      timer.stop();
-      // Play end-of-match double whistle
-      playDoubleWhistle();
-      // Auto-save match
+      if (!userDismissedRef.current) {
+        setShowWinnerPopup(true);
+      }
+      const winnerChanged = lastWinnerSideRef.current !== detectedWinner.side;
+      if (winnerChanged) {
+        lastWinnerSideRef.current = detectedWinner.side;
+        timer.stop();
+        playDoubleWhistle();
+      }
       if (!matchSavedRef.current) {
         matchSavedRef.current = true;
         doSaveMatch(detectedWinner.name, detectedWinner.side);
       }
+    } else if (showWinnerPopup && !winFromHWarningRef.current) {
+      winnerDeclaredRef.current = false;
+      lastWinnerSideRef.current = null;
+      userDismissedRef.current = false;
+      setWinner(null);
+      setShowWinnerPopup(false);
+      matchSavedRef.current = false;
     }
   }, [
     ao.score,
@@ -243,11 +245,12 @@ function MainScoreboard() {
     winByLead,
     leadAmount,
     winningScore,
+    showWinnerPopup,
     doSaveMatch,
     timer.stop,
   ]);
 
-  // End-of-match tie-break: runs when timer hits 0
+  // End-of-match tie-break
   useEffect(() => {
     if (timer.timeMs !== 0 || timer.isRunning) return;
     if (winnerDeclaredRef.current) return;
@@ -260,13 +263,11 @@ function MainScoreboard() {
     } else if (aka.score > ao.score) {
       tieSide = "Aka";
     } else {
-      // Tied — check senshu first
       if (ao.senshu && !aka.senshu) {
         tieSide = "Ao";
       } else if (aka.senshu && !ao.senshu) {
         tieSide = "Aka";
       } else {
-        // Check total ippon + wazaari
         const aoPoints = ao.ippon + ao.wazaari;
         const akaPoints = aka.ippon + aka.wazaari;
         if (aoPoints > akaPoints) {
@@ -274,7 +275,6 @@ function MainScoreboard() {
         } else if (akaPoints > aoPoints) {
           tieSide = "Aka";
         }
-        // Still tied → no automatic winner (draw)
       }
     }
 
@@ -308,7 +308,6 @@ function MainScoreboard() {
     doSaveMatch,
   ]);
 
-  // Keep a ref to the latest state so we can re-broadcast on demand
   const latestStateRef = useRef({
     ao,
     aka,
@@ -322,7 +321,6 @@ function MainScoreboard() {
     darkMode,
   });
 
-  // Broadcast state to external window
   useEffect(() => {
     const currentState = {
       ao,
@@ -351,11 +349,9 @@ function MainScoreboard() {
     darkMode,
   ]);
 
-  // Listen for the external window signaling it's ready (postMessage from ExternalDisplay)
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (e.data?.type === "KUMITE_READY_V8") {
-        // External window is loaded and ready — send current state
         setTimeout(() => broadcastState(latestStateRef.current), 50);
         setTimeout(() => broadcastState(latestStateRef.current), 200);
         setTimeout(() => broadcastState(latestStateRef.current), 500);
@@ -365,7 +361,6 @@ function MainScoreboard() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  // Determine the winner for a match being reset (tie-break logic)
   const resolveWinnerForSave = useCallback((): {
     side: "Ao" | "Aka";
     name: string;
@@ -376,14 +371,12 @@ function MainScoreboard() {
     if (aka.score > ao.score) {
       return { side: "Aka", name: aka.name || "Aka" };
     }
-    // Tied — senshu
     if (ao.senshu && !aka.senshu) {
       return { side: "Ao", name: ao.name || "Ao" };
     }
     if (aka.senshu && !ao.senshu) {
       return { side: "Aka", name: aka.name || "Aka" };
     }
-    // Tied — ippon + wazaari count
     const aoPoints = ao.ippon + ao.wazaari;
     const akaPoints = aka.ippon + aka.wazaari;
     if (aoPoints > akaPoints) {
@@ -392,12 +385,10 @@ function MainScoreboard() {
     if (akaPoints > aoPoints) {
       return { side: "Aka", name: aka.name || "Aka" };
     }
-    // Draw — save as Ao (arbitrary, but type requires a side)
     return { side: "Ao", name: "Draw" };
   }, [ao, aka]);
 
   const handleResetMatch = useCallback(() => {
-    // Only save if not already saved (avoids double-saving when auto-win fired mid-match)
     if (!matchSavedRef.current) {
       const resolved = resolveWinnerForSave();
       doSaveMatch(resolved.name, resolved.side);
@@ -408,7 +399,10 @@ function MainScoreboard() {
     setWinner(null);
     setShowWinnerPopup(false);
     winnerDeclaredRef.current = false;
+    lastWinnerSideRef.current = null;
+    userDismissedRef.current = false;
     matchSavedRef.current = false;
+    winFromHWarningRef.current = null;
     pendingSenshuWinnerRef.current = null;
     timer.reset();
     timer.resetWhistleFlags();
@@ -436,9 +430,7 @@ function MainScoreboard() {
   );
 
   const handleOpenExternalSB = useCallback(() => {
-    // Build the external URL: same origin + same pathname but with #/external hash
     const base = window.location.origin + window.location.pathname;
-    // Remove any trailing slash before appending hash
     const clean = base.endsWith("/") ? base.slice(0, -1) : base;
     const url = `${clean}#/external`;
     const popup = window.open(
@@ -448,18 +440,15 @@ function MainScoreboard() {
     );
     if (popup) {
       setExternalWindow(popup);
-      // Once popup loads, send current state immediately
       popup.addEventListener("load", () => {
         broadcastState(latestStateRef.current);
       });
-      // Also send after short delays in case load already fired
       setTimeout(() => broadcastState(latestStateRef.current), 200);
       setTimeout(() => broadcastState(latestStateRef.current), 600);
       setTimeout(() => broadcastState(latestStateRef.current), 1200);
     }
   }, []);
 
-  // Player state updaters
   const updateAo = useCallback(
     (updater: (prev: PlayerPanelState) => PlayerPanelState) => {
       setAo((prev) => updater(prev));
@@ -474,17 +463,10 @@ function MainScoreboard() {
     [],
   );
 
-  // Senshu tie-break scoring:
-  // When both players are TIED and the next score would put the scorer at winningScore
-  // (or already at/above), and the OTHER player has senshu, both get +1 and the senshu holder wins.
-  // Also triggers when BOTH are already tied at or above winning score.
-  // IMPORTANT: We pre-declare the senshu winner in a ref BEFORE updating state to avoid
-  // a race condition where the win detection effect fires after only one of the two state updates.
   const handleAoScore = useCallback(
     (points: number) => {
       if (!winByLead && winningScore > 0) {
         const isTied = ao.score === aka.score;
-        // Senshu tie-break: Aka has senshu, Ao is about to reach/exceed winning score from a tied position
         const aoWouldReachWinning = ao.score + 1 >= winningScore;
         const alreadyTiedAtWinning = isTied && ao.score >= winningScore;
         if (
@@ -493,13 +475,11 @@ function MainScoreboard() {
           aka.senshu &&
           (aoWouldReachWinning || alreadyTiedAtWinning)
         ) {
-          // Pre-declare senshu winner (Aka) BEFORE state updates to prevent race condition
           pendingSenshuWinnerRef.current = {
             side: "Aka",
             name: aka.name || "Aka",
             targetScore: ao.score + 1,
           };
-          // Senshu tie-break: both get +1, Aka (senshu) wins
           updateAo((prev) => ({
             ...prev,
             score: prev.score + 1,
@@ -510,20 +490,17 @@ function MainScoreboard() {
           updateAka((prev) => ({ ...prev, score: prev.score + 1 }));
           return;
         }
-        // Senshu tie-break: Ao has senshu, Ao is about to reach/exceed winning score from a tied position
         if (
           isTied &&
           ao.senshu &&
           !aka.senshu &&
           (aoWouldReachWinning || alreadyTiedAtWinning)
         ) {
-          // Pre-declare senshu winner (Ao) BEFORE state updates to prevent race condition
           pendingSenshuWinnerRef.current = {
             side: "Ao",
             name: ao.name || "Ao",
             targetScore: ao.score + 1,
           };
-          // Both get +1, Ao (senshu) wins
           updateAo((prev) => ({
             ...prev,
             score: prev.score + 1,
@@ -569,13 +546,11 @@ function MainScoreboard() {
           ao.senshu &&
           (akaWouldReachWinning || alreadyTiedAtWinning)
         ) {
-          // Pre-declare senshu winner (Ao) BEFORE state updates to prevent race condition
           pendingSenshuWinnerRef.current = {
             side: "Ao",
             name: ao.name || "Ao",
             targetScore: aka.score + 1,
           };
-          // Senshu tie-break: both get +1, Ao (senshu) wins
           updateAka((prev) => ({
             ...prev,
             score: prev.score + 1,
@@ -592,13 +567,11 @@ function MainScoreboard() {
           !ao.senshu &&
           (akaWouldReachWinning || alreadyTiedAtWinning)
         ) {
-          // Pre-declare senshu winner (Aka) BEFORE state updates to prevent race condition
           pendingSenshuWinnerRef.current = {
             side: "Aka",
             name: aka.name || "Aka",
             targetScore: aka.score + 1,
           };
-          // Both get +1, Aka (senshu) wins
           updateAka((prev) => ({
             ...prev,
             score: prev.score + 1,
@@ -635,16 +608,18 @@ function MainScoreboard() {
   const handleAoDecrement = useCallback(() => {
     updateAo((prev) => {
       if (prev.score <= 0) return prev;
-      // Deduct from the highest-value score type first
       let { ippon, wazaari, yuko, score } = prev;
-      if (ippon > 0) {
-        ippon -= 1;
+      if (yuko > 0) {
+        yuko -= 1;
+        score = Math.max(0, score - 1);
       } else if (wazaari > 0) {
         wazaari -= 1;
-      } else if (yuko > 0) {
-        yuko -= 1;
+        score = Math.max(0, score - 2);
+      } else if (ippon > 0) {
+        ippon -= 1;
+        score = Math.max(0, score - 3);
       }
-      return { ...prev, score: Math.max(0, score - 1), ippon, wazaari, yuko };
+      return { ...prev, score, ippon, wazaari, yuko };
     });
   }, [updateAo]);
 
@@ -652,92 +627,110 @@ function MainScoreboard() {
     updateAka((prev) => {
       if (prev.score <= 0) return prev;
       let { ippon, wazaari, yuko, score } = prev;
-      if (ippon > 0) {
-        ippon -= 1;
+      if (yuko > 0) {
+        yuko -= 1;
+        score = Math.max(0, score - 1);
       } else if (wazaari > 0) {
         wazaari -= 1;
-      } else if (yuko > 0) {
-        yuko -= 1;
+        score = Math.max(0, score - 2);
+      } else if (ippon > 0) {
+        ippon -= 1;
+        score = Math.max(0, score - 3);
       }
-      return { ...prev, score: Math.max(0, score - 1), ippon, wazaari, yuko };
+      return { ...prev, score, ippon, wazaari, yuko };
     });
   }, [updateAka]);
 
-  // Senshu mutual exclusion: only allow toggling ON if other doesn't have senshu
   const handleAoToggleSenshu = useCallback(() => {
     updateAo((prev) => {
-      if (!prev.senshu && aka.senshu) return prev; // aka has senshu, block
+      if (!prev.senshu && aka.senshu) return prev;
       return { ...prev, senshu: !prev.senshu };
     });
   }, [updateAo, aka.senshu]);
 
   const handleAkaToggleSenshu = useCallback(() => {
     updateAka((prev) => {
-      if (!prev.senshu && ao.senshu) return prev; // ao has senshu, block
+      if (!prev.senshu && ao.senshu) return prev;
       return { ...prev, senshu: !prev.senshu };
     });
   }, [updateAka, ao.senshu]);
 
   const handleAoToggleWarning = useCallback(
     (idx: number) => {
+      const isHWarningCurrentlyOn = ao.warnings[idx] === true;
+      const turningOffH = idx === 4 && isHWarningCurrentlyOn;
+
       updateAo((prev) => {
         const warnings = [...prev.warnings];
         const turningOn = !warnings[idx];
         warnings[idx] = turningOn;
-
         let senshu = prev.senshu;
-
-        // HC (index 3): if timer ≤ 14s and turning on, cancel senshu
         if (idx === 3 && turningOn && timer.timeMs <= 14000) {
           senshu = false;
         }
-
-        // H (index 4): turning on means opponent (aka) wins — handled in useEffect
         return { ...prev, warnings, senshu };
       });
+
+      if (
+        turningOffH &&
+        winnerDeclaredRef.current &&
+        winFromHWarningRef.current === "ao"
+      ) {
+        winnerDeclaredRef.current = false;
+        winFromHWarningRef.current = null;
+        matchSavedRef.current = false;
+        setWinner(null);
+        setShowWinnerPopup(false);
+      }
     },
-    [updateAo, timer.timeMs],
+    [updateAo, timer.timeMs, ao.warnings],
   );
 
   const handleAkaToggleWarning = useCallback(
     (idx: number) => {
+      const isHWarningCurrentlyOn = aka.warnings[idx] === true;
+      const turningOffH = idx === 4 && isHWarningCurrentlyOn;
+
       updateAka((prev) => {
         const warnings = [...prev.warnings];
         const turningOn = !warnings[idx];
         warnings[idx] = turningOn;
-
         let senshu = prev.senshu;
-
-        // HC (index 3): if timer ≤ 14s and turning on, cancel senshu
         if (idx === 3 && turningOn && timer.timeMs <= 14000) {
           senshu = false;
         }
-
-        // H (index 4): turning on means opponent (ao) wins — handled in useEffect
         return { ...prev, warnings, senshu };
       });
+
+      if (
+        turningOffH &&
+        winnerDeclaredRef.current &&
+        winFromHWarningRef.current === "aka"
+      ) {
+        winnerDeclaredRef.current = false;
+        winFromHWarningRef.current = null;
+        matchSavedRef.current = false;
+        setWinner(null);
+        setShowWinnerPopup(false);
+      }
     },
-    [updateAka, timer.timeMs],
+    [updateAka, timer.timeMs, aka.warnings],
   );
 
-  // Hold-R reset: track keydown start time
   const rHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const inInput =
         target.tagName === "INPUT" || target.tagName === "TEXTAREA";
 
-      // Ctrl+R → reset match
       if (e.ctrlKey && e.key === "r") {
         e.preventDefault();
         handleResetMatch();
         return;
       }
 
-      // S / s (no modifier) → start/stop timer
       if (
         (e.key === "s" || e.key === "S") &&
         !e.ctrlKey &&
@@ -751,7 +744,6 @@ function MainScoreboard() {
         return;
       }
 
-      // Hold R for 3 seconds → reset match
       if (
         (e.key === "r" || e.key === "R") &&
         !e.ctrlKey &&
@@ -760,7 +752,7 @@ function MainScoreboard() {
         !e.repeat
       ) {
         if (inInput) return;
-        if (rHoldTimerRef.current) return; // already holding
+        if (rHoldTimerRef.current) return;
         rHoldTimerRef.current = setTimeout(() => {
           rHoldTimerRef.current = null;
           handleResetMatch();
@@ -768,32 +760,27 @@ function MainScoreboard() {
         return;
       }
 
-      // Alt+I → Ao Ippon
       if (e.altKey && (e.key === "i" || e.key === "I")) {
         e.preventDefault();
         handleAoScore(3);
         return;
       }
-      // Alt+W → Ao Waza-ari
       if (e.altKey && (e.key === "w" || e.key === "W")) {
         e.preventDefault();
         handleAoScore(2);
         return;
       }
-      // Alt+Y → Ao Yuko
       if (e.altKey && (e.key === "y" || e.key === "Y")) {
         e.preventDefault();
         handleAoScore(1);
         return;
       }
-      // Alt+S → Ao Senshu
       if (e.altKey && (e.key === "s" || e.key === "S")) {
         e.preventDefault();
         handleAoToggleSenshu();
         return;
       }
 
-      // Shift+I → Aka Ippon (works even when input is focused)
       if (
         e.shiftKey &&
         !e.altKey &&
@@ -804,7 +791,6 @@ function MainScoreboard() {
         handleAkaScore(3);
         return;
       }
-      // Shift+W → Aka Waza-ari (works even when input is focused)
       if (
         e.shiftKey &&
         !e.altKey &&
@@ -815,7 +801,6 @@ function MainScoreboard() {
         handleAkaScore(2);
         return;
       }
-      // Shift+Y → Aka Yuko (works even when input is focused)
       if (
         e.shiftKey &&
         !e.altKey &&
@@ -826,7 +811,6 @@ function MainScoreboard() {
         handleAkaScore(1);
         return;
       }
-      // Shift+S → Aka Senshu (works even when input is focused)
       if (
         e.shiftKey &&
         !e.altKey &&
@@ -840,7 +824,6 @@ function MainScoreboard() {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Cancel hold-R if key released before 3s
       if ((e.key === "r" || e.key === "R") && rHoldTimerRef.current) {
         clearTimeout(rHoldTimerRef.current);
         rHoldTimerRef.current = null;
@@ -866,7 +849,6 @@ function MainScoreboard() {
     handleAkaToggleSenshu,
   ]);
 
-  // Determine panel order based on mirror
   const leftPanel = mirrorInternal ? (
     <PlayerPanel
       side="aka"
@@ -924,7 +906,6 @@ function MainScoreboard() {
       style={{ width: "100vw", height: "100vh" }}
       className={`flex flex-col overflow-hidden ${darkMode ? "bg-black" : "bg-white"}`}
     >
-      {/* Control Bar */}
       <ControlBar
         category={category}
         winningScore={winningScore}
@@ -945,7 +926,6 @@ function MainScoreboard() {
         onToggleDarkMode={() => setDarkMode((d) => !d)}
       />
 
-      {/* Header */}
       <div
         className={`flex items-center justify-between px-4 py-1 border-b border-gray-700 ${
           darkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
@@ -975,15 +955,12 @@ function MainScoreboard() {
         </span>
       </div>
 
-      {/* Three Panel Layout */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left Panel */}
         <div className="flex-1 min-w-0 overflow-hidden">{leftPanel}</div>
-
-        {/* Center Panel */}
         <div className="w-52 shrink-0 overflow-hidden">
           <CenterPanel
             timerDisplay={timer.timerDisplay}
+            timerMs={timer.timeMs}
             isRunning={timer.isRunning}
             darkMode={darkMode}
             onToggleTimer={timer.toggle}
@@ -993,12 +970,9 @@ function MainScoreboard() {
             onAdjustTime={timer.adjustTime}
           />
         </div>
-
-        {/* Right Panel */}
         <div className="flex-1 min-w-0 overflow-hidden">{rightPanel}</div>
       </div>
 
-      {/* Footer */}
       <footer
         className={`border-t border-gray-800 py-1 px-4 text-center shrink-0 ${darkMode ? "bg-black" : "bg-gray-100"}`}
       >
@@ -1018,13 +992,15 @@ function MainScoreboard() {
         </span>
       </footer>
 
-      {/* Modals */}
       <WinnerPopup
         isOpen={showWinnerPopup}
         winnerSide={winner?.side ?? null}
         winnerName={winner?.name ?? ""}
         winnerScore={winner?.score}
-        onClose={() => setShowWinnerPopup(false)}
+        onClose={() => {
+          setShowWinnerPopup(false);
+          userDismissedRef.current = true;
+        }}
       />
 
       <HistoryModal
@@ -1038,7 +1014,6 @@ function MainScoreboard() {
         onSettingsApplied={handleFileSettingsApplied}
       />
 
-      {/* PWA Install Banner */}
       <PWAInstallBanner />
     </div>
   );

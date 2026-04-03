@@ -3,6 +3,7 @@ import React from "react";
 
 interface CenterPanelProps {
   timerDisplay: string;
+  timerMs: number;
   isRunning: boolean;
   darkMode?: boolean;
   onToggleTimer: () => void;
@@ -14,6 +15,7 @@ interface CenterPanelProps {
 
 export default function CenterPanel({
   timerDisplay,
+  timerMs,
   isRunning,
   darkMode = true,
   onToggleTimer,
@@ -24,6 +26,19 @@ export default function CenterPanel({
 }: CenterPanelProps) {
   const bgClass = darkMode ? "bg-black" : "bg-gray-200";
   const labelClass = darkMode ? "text-white" : "text-gray-900";
+
+  // Timer color: yellow when running, red when running & last 15s, white when stopped
+  const timerColor = !isRunning
+    ? "#FFFFFF"
+    : timerMs <= 15000
+      ? "#EF4444"
+      : "#FACC15";
+
+  const timerGlow = !isRunning
+    ? "none"
+    : timerMs <= 15000
+      ? "0 0 16px rgba(239,68,68,0.9), 0 0 32px rgba(239,68,68,0.5)"
+      : "0 0 16px rgba(250,204,21,0.9), 0 0 32px rgba(250,204,21,0.5)";
 
   return (
     <div
@@ -51,7 +66,14 @@ export default function CenterPanel({
         >
           <ChevronUp size={14} />
         </button>
-        <div className="text-timer-green font-scoreboard text-4xl font-black tracking-wider">
+        <div
+          className="font-scoreboard text-4xl font-black tracking-wider"
+          style={{
+            color: timerColor,
+            textShadow: timerGlow,
+            transition: "color 0.3s, text-shadow 0.3s",
+          }}
+        >
           {timerDisplay}
         </div>
         <button
